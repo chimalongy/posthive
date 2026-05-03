@@ -18,8 +18,8 @@ export async function GET(request) {
   }
 
   // Construct TikTok Authorization URL
-  // Scopes required for PostHive: user.info.basic,video.upload
-  const scope = 'user.info.basic,video.upload';
+  // Scopes required for PostHive: user.info.basic,video.upload,video.publish
+  const scope = 'user.info.basic,video.upload,video.publish';
   const responseType = 'code';
   
   // Use the APP_URL from environment variables for the redirect URI
