@@ -190,7 +190,7 @@ export default function UploadPage() {
                     </div>
 
                     <Link
-                      href={`/dashboard/posts?mediaId=${item.id}`}
+                      href={`/dashboard/posts/new?mediaId=${item.id}`}
                       className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 text-zinc-900 dark:text-zinc-100 hover:text-white dark:hover:text-white text-xs font-bold transition-all duration-200"
                     >
                       <Link2 className="w-3.5 h-3.5" />

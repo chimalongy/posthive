@@ -227,7 +227,7 @@ function NewPostContent() {
             <button
               onClick={() => {
                 setResults(null);
-                router.push('/posts');
+                router.push('/dashboard/posts');
               }}
               className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 font-medium text-sm transition-colors"
             >
