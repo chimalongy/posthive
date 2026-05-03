@@ -83,6 +83,7 @@ export default function MediaUploader({ onUpload }) {
 
       setProgress(100);
       onUpload?.(response);
+      clearFile(); // Reset uploader state after success
     } catch (err) {
       setError(err.message || 'Upload failed. Please try again.');
     } finally {
