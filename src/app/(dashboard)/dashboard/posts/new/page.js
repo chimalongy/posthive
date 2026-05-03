@@ -1,15 +1,26 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PlatformSelector from '@/components/PlatformSelector';
 import { createClient } from '@/lib/supabaseBrowser';
 import { Loader2, Image, Video, ArrowLeft, Send } from 'lucide-react';
 
+import { Suspense } from 'react';
+
 export default function NewPostPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>}>
+      <NewPostContent />
+    </Suspense>
+  );
+}
+
+function NewPostContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [media, setMedia] = useState([]);
-  const [selectedMediaId, setSelectedMediaId] = useState('');
+  const [selectedMediaId, setSelectedMediaId] = useState(searchParams.get('mediaId') || '');
   const [caption, setCaption] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [connectedPlatforms, setConnectedPlatforms] = useState([]);
@@ -21,7 +32,7 @@ export default function NewPostPage() {
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const [mediaRes, platformsRes] = await Promise.all([
-      supabase.from('media_uploads').select('*').order('uploaded_at', { ascending: false }).limit(20),
+      supabase.from('media_uploads').select('*').order('created_at', { ascending: false }).limit(20),
       fetch('/api/platforms').then((r) => r.json()).catch(() => ({ platforms: [] })),
     ]);
 
