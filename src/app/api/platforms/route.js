@@ -46,6 +46,12 @@ export async function POST(request) {
     return Response.json({ error: 'Missing platform or credentials' }, { status: 400 });
   }
 
+  // Trim all string credential values to prevent space-related errors
+  const trimmedCredentials = {};
+  for (const [key, value] of Object.entries(credentials)) {
+    trimmedCredentials[key] = typeof value === 'string' ? value.trim() : value;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -62,7 +68,7 @@ export async function POST(request) {
   if (existing) {
     const { error } = await supabase
       .from('connected_platforms')
-      .update({ credentials, is_active: true, connected_at: new Date().toISOString() })
+      .update({ credentials: trimmedCredentials, is_active: true, connected_at: new Date().toISOString() })
       .eq('id', existing.id);
 
     if (error) {
@@ -71,7 +77,7 @@ export async function POST(request) {
   } else {
     const { error } = await supabase
       .from('connected_platforms')
-      .insert({ user_id: userId, platform, credentials });
+      .insert({ user_id: userId, platform, credentials: trimmedCredentials });
 
     if (error) {
       return Response.json({ error: error.message }, { status: 500 });
@@ -79,7 +85,7 @@ export async function POST(request) {
   }
 
   if (platform === 'tiktok') {
-    const redirectUrl = `/api/tiktok/authorize?client_key=${encodeURIComponent(credentials.clientKey)}&is_sandbox=${credentials.isSandbox}`;
+    const redirectUrl = `/api/tiktok/authorize?client_key=${encodeURIComponent(trimmedCredentials.clientKey)}&is_sandbox=${trimmedCredentials.isSandbox}`;
     return Response.json({ success: true, redirectUrl });
   }
 
