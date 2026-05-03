@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, X, Image, Film } from 'lucide-react';
+import { Upload, X, Image, Film, Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabaseBrowser';
 
 export default function MediaUploader({ onUpload }) {
   const [file, setFile] = useState(null);
@@ -20,6 +21,12 @@ export default function MediaUploader({ onUpload }) {
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-msvideo'];
     if (!validTypes.includes(selectedFile.type)) {
       setError('Invalid file type. Please upload an image (JPG, PNG, GIF, WEBP) or video (MP4, MOV, AVI).');
+      return;
+    }
+
+    // Optional: Check local size limit (e.g. 80MB)
+    if (selectedFile.size > 80 * 1024 * 1024) {
+      setError('File is too large. Max limit is 80MB.');
       return;
     }
 
@@ -49,42 +56,64 @@ export default function MediaUploader({ onUpload }) {
     if (!file) return;
     setUploading(true);
     setProgress(0);
+    setError('');
 
-    const formData = new FormData();
-    formData.append('file', file);
-
+    const supabase = createClient();
+    
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          setProgress(Math.round((event.loaded / event.total) * 100));
+      // 1. Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Please log in to upload media.');
+
+      const fileName = file.name;
+      const fileType = file.type;
+      const timestamp = Date.now();
+      const path = `${user.id}/${timestamp}_${fileName}`;
+      const bucketName = 'posthive'; // Match your Supabase bucket name
+
+      // 2. Upload directly to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(path, file, {
+          contentType: fileType,
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        // If bucket doesn't exist or policy is missing
+        if (uploadError.message.includes('bucket not found')) {
+          throw new Error('Storage bucket "posthive" not found. Please create it in Supabase.');
         }
+        throw uploadError;
+      }
+
+      setProgress(50); // Direct upload doesn't have easy progress in SDK, we simulate or just show active
+
+      // 3. Get Public URL
+      const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(path);
+      const publicUrl = urlData?.publicUrl;
+
+      // 4. Save metadata to DB via API (to keep logic centralized and secure)
+      const res = await fetch('/api/upload/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_name: fileName,
+          file_type: fileType,
+          bucket_path: path,
+          public_url: publicUrl,
+        }),
       });
 
-      const response = await new Promise((resolve, reject) => {
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            let errorMessage = 'Upload failed';
-            try {
-              const errorData = JSON.parse(xhr.responseText);
-              errorMessage = errorData.error || errorMessage;
-            } catch (e) {
-              errorMessage = xhr.responseText || errorMessage;
-            }
-            reject(new Error(errorMessage));
-          }
-        });
-        xhr.addEventListener('error', () => reject(new Error('Upload failed')));
-        xhr.open('POST', '/api/upload');
-        xhr.send(formData);
-      });
+      const dbData = await res.json();
+      if (!res.ok) throw new Error(dbData.error || 'Failed to save metadata');
 
       setProgress(100);
-      onUpload?.(response);
-      clearFile(); // Reset uploader state after success
+      onUpload?.(dbData);
+      clearFile();
     } catch (err) {
+      console.error('Upload error:', err);
       setError(err.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
@@ -120,7 +149,7 @@ export default function MediaUploader({ onUpload }) {
             <div>
               <p className="text-sm font-medium">Drag and drop your media here</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                or click to browse (JPG, PNG, GIF, WEBP, MP4, MOV, AVI)
+                or click to browse (Max 80MB)
               </p>
             </div>
             <label className="cursor-pointer">
@@ -151,7 +180,8 @@ export default function MediaUploader({ onUpload }) {
             </div>
             <button
               onClick={clearFile}
-              className="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              disabled={uploading}
+              className="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
             >
               <X className="w-4 h-4" />
             </button>
@@ -166,14 +196,17 @@ export default function MediaUploader({ onUpload }) {
           </div>
 
           {uploading && (
-            <div className="mb-3">
+            <div className="mb-3 space-y-2">
               <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-indigo-600 transition-all duration-300"
-                  style={{ width: `${progress}%` }}
+                  className="h-full bg-indigo-600 animate-pulse"
+                  style={{ width: '100%' }}
                 />
               </div>
-              <p className="text-xs text-zinc-500 mt-1">{progress}% uploaded</p>
+              <p className="text-xs text-zinc-500 flex items-center gap-2">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Uploading directly to secure storage...
+              </p>
             </div>
           )}
 
