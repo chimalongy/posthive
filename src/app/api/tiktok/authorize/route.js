@@ -22,10 +22,9 @@ export async function GET(request) {
   const scope = 'user.info.basic,video.upload,video.publish';
   const responseType = 'code';
   
-  // Use a fixed redirect URI that we'll implement next
-  const protocol = request.headers.get('x-forwarded-proto') || 'http';
-  const host = request.headers.get('host');
-  const redirectUri = `${protocol}://${host}/api/tiktok/callback`;
+  // Use the APP_URL from environment variables for the redirect URI
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const redirectUri = `${appUrl.replace(/\/$/, '')}/api/tiktok/callback`;
 
   // We use the 'state' parameter to pass the clientKey and isSandbox flag to the callback
   // In a production app, this should be a signed JWT or a CSRF token stored in a session

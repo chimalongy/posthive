@@ -46,9 +46,8 @@ export async function GET(request) {
     }
 
     // 2. Exchange code for tokens
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host');
-    const redirectUri = `${protocol}://${host}/api/tiktok/callback`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const redirectUri = `${appUrl.replace(/\/$/, '')}/api/tiktok/callback`;
 
     const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
       method: 'POST',
