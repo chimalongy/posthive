@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createUserClient } from '@/lib/supabaseServer';
 import crypto from 'crypto';
 
 function percentEncode(str) {
@@ -34,33 +35,16 @@ export async function GET(request) {
   }
 
   try {
-    // 1. Initialize Supabase with service role
+    // 1. Initialize Supabase User Client to get current user
+    const supabaseUser = await createUserClient();
+    const { data: { user } } = await supabaseUser.auth.getUser();
+    
+    if (!user) throw new Error('Unauthorized');
+
+    // 2. Initialize Supabase with service role to update record
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    // 2. Find the record waiting for this token
-    // Since we don't have a direct link, we'll look for any active twitter record
-    // In a real app, you'd store the oauthToken in the DB during authorize.
-    // For now, we'll use the cookies if we can find the user.
-    
-    // Actually, we can get the user from the current session
-    // But since this is a callback, the user might not be in the request.
-    // HOWEVER, we have the Supabase session usually.
-    
-    // Let's find the record that has the correct apiKey
-    // Wait! We can't easily identify the user without a state.
-    // Let's assume there's only one "pending" twitter record for now or use cookies if possible.
-    
-    // Better approach: Store the user_id in another cookie during authorize.
-    
-    // For now, let's try to get the user from the cookie.
-    // (In Next.js, cookies are shared).
-    
-    // Let's assume the user is still logged in.
-    const { data: { user } } = await (await import('@/lib/supabaseServer')).createClient().auth.getUser();
-    
-    if (!user) throw new Error('Unauthorized');
 
     const { data: record } = await supabase
       .from('connected_platforms')
