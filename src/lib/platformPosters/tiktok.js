@@ -70,14 +70,19 @@ async function initUpload(accessToken, videoSize, caption, creatorInfo, isSandbo
     ? `${BASE}/post/publish/inbox/video/init/`
     : `${BASE}/post/publish/video/init/`;
 
-  const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB chunks
-  const totalChunkCount = Math.ceil(videoSize / CHUNK_SIZE);
+  let chunkSize = 10 * 1024 * 1024; // 10 MB default
+  let totalChunkCount = Math.ceil(videoSize / chunkSize);
+
+  // If the file is smaller than our default chunk size, or fits in one chunk
+  if (totalChunkCount === 1) {
+    chunkSize = videoSize;
+  }
 
   const body = {
     source_info: {
       source: 'FILE_UPLOAD',
       video_size: videoSize,
-      chunk_size: CHUNK_SIZE,
+      chunk_size: chunkSize,
       total_chunk_count: totalChunkCount
     }
   };
@@ -119,13 +124,18 @@ async function initUpload(accessToken, videoSize, caption, creatorInfo, isSandbo
  */
 async function uploadInChunks(uploadUrl, fileBuffer) {
   console.log('Transferring video to TikTok in chunks...');
-  const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB
   const totalSize = fileBuffer.byteLength;
-  const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+  let chunkSize = 10 * 1024 * 1024; // 10 MB
+  
+  if (totalSize <= chunkSize) {
+    chunkSize = totalSize;
+  }
+  
+  const totalChunks = Math.ceil(totalSize / chunkSize);
 
   for (let i = 0; i < totalChunks; i++) {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, totalSize);
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize, totalSize);
     const chunk = fileBuffer.slice(start, end);
 
     console.log(`Uploading chunk ${i + 1}/${totalChunks} (${chunk.byteLength} bytes)...`);
