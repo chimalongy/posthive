@@ -81,9 +81,13 @@ export default function MediaUploader({ onUpload }) {
         });
 
       if (uploadError) {
+        console.error('Supabase Storage Error:', uploadError);
         // If bucket doesn't exist or policy is missing
         if (uploadError.message.includes('bucket not found')) {
           throw new Error('Storage bucket "posthive" not found. Please create it in Supabase.');
+        }
+        if (uploadError.message.includes('row-level security policy')) {
+          throw new Error('Storage RLS Error: Your Supabase storage bucket "posthive" is missing policies. Please enable "Insert" access for authenticated users in the storage dashboard.');
         }
         throw uploadError;
       }
@@ -95,6 +99,7 @@ export default function MediaUploader({ onUpload }) {
       const publicUrl = urlData?.publicUrl;
 
       // 4. Save metadata to DB via API (to keep logic centralized and secure)
+      console.log('Saving metadata to DB...');
       const res = await fetch('/api/upload/metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,7 +112,13 @@ export default function MediaUploader({ onUpload }) {
       });
 
       const dbData = await res.json();
-      if (!res.ok) throw new Error(dbData.error || 'Failed to save metadata');
+      if (!res.ok) {
+        console.error('Metadata API Error:', dbData.error);
+        if (dbData.error?.includes('row-level security policy')) {
+          throw new Error('Database RLS Error: Metadata save failed. The server was unable to verify your permission to create this record.');
+        }
+        throw new Error(dbData.error || 'Failed to save metadata');
+      }
 
       setProgress(100);
       onUpload?.(dbData);
