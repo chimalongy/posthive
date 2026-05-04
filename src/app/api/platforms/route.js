@@ -11,7 +11,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('connected_platforms')
-    .select('id, platform, connected_at, is_active')
+    .select('id, platform, connected_at, is_active, credentials')
     .eq('user_id', userId)
     .eq('is_active', true);
 

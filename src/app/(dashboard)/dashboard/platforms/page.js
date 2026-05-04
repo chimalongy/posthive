@@ -104,6 +104,22 @@ function PlatformsContent() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleReconnect = (platform) => {
+    const record = connected.find((p) => p.platform === platform);
+    if (!record || !record.credentials) return;
+
+    let redirectUrl = '';
+    if (platform === 'youtube') {
+      redirectUrl = `/api/youtube/authorize?clientId=${encodeURIComponent(record.credentials.clientId)}`;
+    } else if (platform === 'tiktok') {
+      redirectUrl = `/api/tiktok/authorize?client_key=${encodeURIComponent(record.credentials.clientKey)}&is_sandbox=${record.credentials.isSandbox}`;
+    }
+
+    if (redirectUrl) {
+      window.location.href = redirectUrl;
+    }
+  };
+
   const connectedMap = new Map(connected.map((p) => [p.platform, p]));
 
   return (
@@ -139,6 +155,7 @@ function PlatformsContent() {
               details={connectedMap.get(platform)}
               onConnect={() => setModalPlatform(platform)}
               onDisconnect={() => handleDisconnect(platform)}
+              onReconnect={() => handleReconnect(platform)}
             />
           ))}
         </div>

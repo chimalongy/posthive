@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Link2, Unlink, Globe, Camera, Play, Music2, MessageSquare } from 'lucide-react';
+import { Check, Link2, Unlink, Globe, Camera, Play, Music2, MessageSquare, RefreshCw } from 'lucide-react';
 
 const platformMeta = {
   facebook: {
@@ -41,7 +41,7 @@ const platformMeta = {
   },
 };
 
-export default function PlatformCard({ platform, connected, details, onConnect, onDisconnect }) {
+export default function PlatformCard({ platform, connected, details, onConnect, onDisconnect, onReconnect }) {
   const meta = platformMeta[platform];
   const Icon = meta.icon;
 
@@ -73,13 +73,24 @@ export default function PlatformCard({ platform, connected, details, onConnect, 
                 </span>
               )}
             </div>
-            <button
-              onClick={onDisconnect}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full sm:w-auto self-end"
-            >
-              <Unlink className="w-4 h-4" />
-              Disconnect
-            </button>
+            <div className="flex items-center gap-2 w-full">
+              <button
+                onClick={onDisconnect}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <Unlink className="w-4 h-4" />
+                Disconnect
+              </button>
+              {(platform === 'youtube' || platform === 'tiktok') && (
+                <button
+                  onClick={onReconnect}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Reconnect
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <button
