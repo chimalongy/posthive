@@ -44,7 +44,17 @@ export async function POST(request) {
 
   const results = [];
   const isVideo = media.file_type?.startsWith('video/');
-  const mediaUrl = media.public_url;
+  // Generate a signed URL for all platforms (most require public access to pull media)
+  const bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'posthive';
+  const { data: signedData, error: signedError } = await supabase.storage
+    .from(bucketName)
+    .createSignedUrl(media.bucket_path, 3600); // 1 hour expiry
+
+  if (signedError) {
+    return Response.json({ error: 'Failed to generate access URL for media: ' + signedError.message }, { status: 500 });
+  }
+
+  const mediaUrl = signedData.signedUrl;
 
   for (const platform of platforms) {
     const creds = credMap[platform];
@@ -73,29 +83,19 @@ export async function POST(request) {
           if (!isVideo) {
             result = { success: false, error: 'TikTok only supports video uploads' };
           } else {
-            // Generate a signed URL for TikTok (PULL_FROM_URL requires public access)
-            const bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'posthive';
-            const { data: signedData, error: signedError } = await supabase.storage
-              .from(bucketName)
-              .createSignedUrl(media.bucket_path, 3600); // 1 hour expiry
-
-            if (signedError) {
-              result = { success: false, error: 'Failed to generate access URL for TikTok: ' + signedError.message };
-            } else {
-              result = await postToTikTok(creds, signedData.signedUrl, caption);
+            result = await postToTikTok(creds, mediaUrl, caption);
+            
+            // If tokens were refreshed, save them immediately
+            if (result?.updatedTokens) {
+              const newCreds = { ...creds, ...result.updatedTokens };
+              await supabase
+                .from('connected_platforms')
+                .update({ credentials: newCreds })
+                .eq('user_id', userId)
+                .eq('platform', 'tiktok');
               
-              // If tokens were refreshed, save them immediately
-              if (result.updatedTokens) {
-                const newCreds = { ...creds, ...result.updatedTokens };
-                await supabase
-                  .from('connected_platforms')
-                  .update({ credentials: newCreds })
-                  .eq('user_id', userId)
-                  .eq('platform', 'tiktok');
-                
-                // Clean up result object for frontend
-                delete result.updatedTokens;
-              }
+              // Clean up result object for frontend
+              delete result.updatedTokens;
             }
           }
           break;
@@ -116,7 +116,7 @@ export async function POST(request) {
 
   const resultsJson = {};
   results.forEach((r) => {
-    resultsJson[r.platform] = { success: r.success, postId: r.postId || null, error: r.error || null };
+    resultsJson[r.platform] = { success: r.success, postId: r.postId || null, error: r.error || null, note: r.note || null };
   });
 
   await supabase.from('posts').insert({

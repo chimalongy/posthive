@@ -1,95 +1,208 @@
-export async function postToTikTok(credentials, mediaUrl, caption) {
-  const { clientKey, clientSecret, accessToken, refreshToken, token_expires_at, isSandbox } = credentials;
+// PostHive — Complete TikTok poster (PULL_FROM_URL, sandbox + production)
+// Following the mandatory 4-step pipeline described in the TikTok Upload Flow Guide.
 
-  if (!clientKey || !clientSecret || !accessToken || !refreshToken) {
-    return { success: false, error: 'Missing TikTok credentials' };
+const BASE = 'https://open.tiktokapis.com/v2';
+
+/**
+ * Step 0: Refresh the access token if it's expired or about to expire.
+ */
+async function refreshIfNeeded(credentials) {
+  const { clientKey, clientSecret, refreshToken, token_expires_at } = credentials;
+  
+  // Buffer of 5 minutes
+  if (token_expires_at && Date.now() < token_expires_at - 300000) {
+    return { credentials, updated: false };
   }
 
-  try {
-    let currentAccessToken = accessToken;
-    let currentRefreshToken = refreshToken;
-    let updatedTokens = null;
+  console.log('TikTok access token expired or missing, refreshing...');
+  const res = await fetch(`${BASE}/oauth/token/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_key: clientKey,
+      client_secret: clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  });
 
-    // Step 1: Check if token is expired or about to expire (within 10 minutes)
-    const isExpired = !token_expires_at || Date.now() > (token_expires_at - 600000);
+  const d = await res.json();
+  if (!res.ok || !d.access_token) {
+    throw new Error('TikTok token refresh failed: ' + (d.error_description || d.message || 'Unknown error'));
+  }
 
-    if (isExpired) {
-      console.log('TikTok access token expired or missing, refreshing...');
-      const refreshRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_key: clientKey,
-          client_secret: clientSecret,
-          grant_type: 'refresh_token',
-          refresh_token: refreshToken,
-        }),
-      });
+  const updatedCredentials = {
+    ...credentials,
+    accessToken: d.access_token,
+    refreshToken: d.refresh_token,
+    token_expires_at: Date.now() + (d.expires_in * 1000),
+  };
 
-      const refreshData = await refreshRes.json();
-      
-      // TikTok v2 returns { access_token, refresh_token, expires_in, ... } at root or inside .data depending on exact version
-      // The guide shows them at the root of the JSON response for /v2/oauth/token/
-      const data = refreshData;
+  return { credentials: updatedCredentials, updated: true };
+}
 
-      if (!refreshRes.ok || !data.access_token) {
-        return { 
-          success: false, 
-          error: data.error_description || data.message || 'Failed to refresh TikTok token' 
-        };
-      }
+/**
+ * Step 1: Query Creator Info (Mandatory before init)
+ */
+async function queryCreatorInfo(accessToken) {
+  console.log('Querying TikTok creator info...');
+  const res = await fetch(`${BASE}/post/publish/creator_info/query/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+  });
+  const d = await res.json();
+  if (d.error?.code !== 'ok') {
+    throw new Error('TikTok creator info query failed: ' + (d.error?.message || 'Unknown error'));
+  }
+  return d.data;
+}
 
-      currentAccessToken = data.access_token;
-      currentRefreshToken = data.refresh_token;
-      updatedTokens = {
-        accessToken: currentAccessToken,
-        refreshToken: currentRefreshToken,
-        token_expires_at: Date.now() + (data.expires_in * 1000)
-      };
+/**
+ * Step 2: Initialize Upload
+ */
+async function initUpload(accessToken, mediaUrl, caption, creatorInfo, isSandbox) {
+  console.log('Initializing TikTok upload...');
+  const endpoint = isSandbox
+    ? `${BASE}/post/publish/inbox/video/init/`
+    : `${BASE}/post/publish/video/init/`;
+
+  const body = {
+    source_info: {
+      source: 'PULL_FROM_URL',
+      video_url: mediaUrl
     }
+  };
 
-    // Step 2: Initialize post
-    // Guide: Sandbox uses /inbox/video/init/, Production uses /video/init/
-    const endpointPath = isSandbox 
-      ? 'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/'
-      : 'https://open.tiktokapis.com/v2/post/publish/video/init/';
+  // Sandbox init DOES NOT support post_info
+  if (!isSandbox) {
+    body.post_info = {
+      title: caption?.slice(0, 100) || 'PostHive Upload',
+      privacy_level: creatorInfo.privacy_level_options?.[0] || 'SELF_ONLY',
+      disable_duet: creatorInfo.duet_disabled || false,
+      disable_comment: creatorInfo.comment_disabled || false,
+      disable_stitch: creatorInfo.stitch_disabled || false,
+      video_cover_timestamp_ms: 1000,
+    };
+  }
 
-    const initRes = await fetch(endpointPath, {
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const d = await res.json();
+  if (d.error?.code !== 'ok') {
+    throw new Error('TikTok upload initialization failed: ' + (d.error?.message || 'Unknown error'));
+  }
+
+  return d.data.publish_id;
+}
+
+/**
+ * Step 4: Poll Publish Status (Async)
+ */
+async function pollStatus(accessToken, publishId, isSandbox) {
+  console.log('Polling TikTok publish status...');
+  let delay = 3000;
+  const maxAttempts = 20;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, delay));
+
+    const res = await fetch(`${BASE}/post/publish/status/fetch/`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${currentAccessToken}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
       },
-      body: JSON.stringify({
-        source_info: {
-          source: 'PULL_FROM_URL',
-          url: mediaUrl,
-        },
-        post_info: {
-          title: caption?.slice(0, 100) || 'PostHive Upload',
-          privacy_level: 'SELF_ONLY', // Default for safety, Production can change this
-        }
-      }),
+      body: JSON.stringify({ publish_id: publishId }),
     });
 
-    const initData = await initRes.json();
-    if (!initRes.ok || initData.error?.code !== 'ok') {
+    const d = await res.json();
+    const status = d.data?.status;
+
+    if (status === 'PUBLISH_COMPLETE') {
       return { 
-        success: false, 
-        error: initData.error?.message || 'Failed to initialize TikTok post',
-        updatedTokens // Return tokens even if post failed, so we don't lose the new refresh_token
+        success: true, 
+        postId: d.data.publicaly_available_post_id?.[0] || 'published' 
       };
     }
 
-    const publishId = initData.data?.publish_id;
+    if (status === 'SEND_TO_USER_INBOX' && isSandbox) {
+      return { 
+        success: true, 
+        postId: null, 
+        note: 'Sandbox success: Post sent to your TikTok inbox as a draft.' 
+      };
+    }
 
-    return { 
-      success: true, 
-      postId: publishId || 'pending', 
-      error: isSandbox ? 'Post sent to your TikTok inbox as a draft (Sandbox Mode).' : null,
+    if (status === 'FAILED') {
+      return { 
+        success: false, 
+        error: d.data?.fail_reason || 'TikTok processing failed' 
+      };
+    }
+
+    // Still processing, back off and retry
+    console.log(`TikTok status: ${status}. Retrying in ${delay/1000}s...`);
+    delay = Math.min(delay * 1.5, 30000);
+  }
+
+  return { success: false, error: 'TikTok status polling timed out' };
+}
+
+/**
+ * Main export for PostHive
+ */
+export async function postToTikTok(credentials, mediaUrl, caption) {
+  let updatedTokens = null;
+  
+  try {
+    // Step 0: Refresh token
+    const refreshResult = await refreshIfNeeded(credentials);
+    const currentCreds = refreshResult.credentials;
+    if (refreshResult.updated) {
+      updatedTokens = {
+        accessToken: currentCreds.accessToken,
+        refreshToken: currentCreds.refreshToken,
+        token_expires_at: currentCreds.token_expires_at
+      };
+    }
+
+    // Step 1: Mandatory Creator Info Query
+    const creatorInfo = await queryCreatorInfo(currentCreds.accessToken);
+
+    // Step 2: Initialize Upload
+    const publishId = await initUpload(
+      currentCreds.accessToken,
+      mediaUrl,
+      caption,
+      creatorInfo,
+      currentCreds.isSandbox
+    );
+
+    // Step 3: Video Transfer (Skipped because we use PULL_FROM_URL)
+
+    // Step 4: Poll Status
+    const result = await pollStatus(currentCreds.accessToken, publishId, currentCreds.isSandbox);
+
+    return {
+      ...result,
       updatedTokens
     };
   } catch (err) {
-    return { success: false, error: err.message || 'TikTok API error' };
+    console.error('TikTok Poster Error:', err);
+    return { 
+      success: false, 
+      error: err.message || 'TikTok API error',
+      updatedTokens
+    };
   }
 }

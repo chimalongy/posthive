@@ -221,6 +221,9 @@ function NewPostContent() {
                   {result.error && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">{result.error}</p>
                   )}
+                  {result.note && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">{result.note}</p>
+                  )}
                 </div>
               ))}
             </div>
