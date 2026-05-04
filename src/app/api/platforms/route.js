@@ -70,6 +70,11 @@ export async function POST(request) {
     }
   }
 
+  if (platform === 'facebook') {
+    const redirectUrl = `/api/facebook/authorize?appId=${encodeURIComponent(trimmedCredentials.appId)}`;
+    return Response.json({ success: true, redirectUrl });
+  }
+
   if (platform === 'tiktok') {
     const redirectUrl = `/api/tiktok/authorize?client_key=${encodeURIComponent(trimmedCredentials.clientKey)}&is_sandbox=${trimmedCredentials.isSandbox}`;
     return Response.json({ success: true, redirectUrl });

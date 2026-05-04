@@ -9,10 +9,8 @@ const platformConfig = {
     fields: [
       { key: 'appId', label: 'App ID', type: 'text', help: 'https://developers.facebook.com/apps/' },
       { key: 'appSecret', label: 'App Secret', type: 'password', help: 'https://developers.facebook.com/apps/' },
-      { key: 'pageAccessToken', label: 'Page Access Token', type: 'password', help: 'https://developers.facebook.com/tools/explorer/' },
-      { key: 'pageId', label: 'Page ID', type: 'text', help: 'https://www.facebook.com/business/tools/page-identity' },
     ],
-    warning: 'App Review is required for posting to accounts you do not own. In development mode, only app admins and testers can post.',
+    warning: 'Facebook requires OAuth authorization. Enter your App credentials from the Meta for Developers portal, then click "Save & Authorize". You will be asked to select the Page you want to connect.',
   },
   instagram: {
     name: 'Instagram',
@@ -178,7 +176,7 @@ export default function CredentialModal({ platform, onSave, onClose }) {
               disabled={loading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : (platform === 'tiktok' || platform === 'youtube' || platform === 'twitter') ? 'Save & Authorize' : 'Save Credentials'}
+              {loading ? 'Saving...' : (platform === 'tiktok' || platform === 'youtube' || platform === 'twitter' || platform === 'facebook') ? 'Save & Authorize' : 'Save Credentials'}
             </button>
           </div>
         </form>

@@ -109,7 +109,9 @@ function PlatformsContent() {
     if (!record || !record.credentials) return;
 
     let redirectUrl = '';
-    if (platform === 'youtube') {
+    if (platform === 'facebook') {
+      redirectUrl = `/api/facebook/authorize?appId=${encodeURIComponent(record.credentials.appId)}`;
+    } else if (platform === 'youtube') {
       redirectUrl = `/api/youtube/authorize?clientId=${encodeURIComponent(record.credentials.clientId)}`;
     } else if (platform === 'tiktok') {
       redirectUrl = `/api/tiktok/authorize?client_key=${encodeURIComponent(record.credentials.clientKey)}&is_sandbox=${record.credentials.isSandbox}`;
