@@ -73,19 +73,29 @@ export async function POST(request) {
           if (!isVideo) {
             result = { success: false, error: 'TikTok only supports video uploads' };
           } else {
-            result = await postToTikTok(creds, mediaUrl, caption);
-            
-            // If tokens were refreshed, save them immediately
-            if (result.updatedTokens) {
-              const newCreds = { ...creds, ...result.updatedTokens };
-              await supabase
-                .from('connected_platforms')
-                .update({ credentials: newCreds })
-                .eq('user_id', userId)
-                .eq('platform', 'tiktok');
+            // Generate a signed URL for TikTok (PULL_FROM_URL requires public access)
+            const bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'posthive';
+            const { data: signedData, error: signedError } = await supabase.storage
+              .from(bucketName)
+              .createSignedUrl(media.bucket_path, 3600); // 1 hour expiry
+
+            if (signedError) {
+              result = { success: false, error: 'Failed to generate access URL for TikTok: ' + signedError.message };
+            } else {
+              result = await postToTikTok(creds, signedData.signedUrl, caption);
               
-              // Clean up result object for frontend
-              delete result.updatedTokens;
+              // If tokens were refreshed, save them immediately
+              if (result.updatedTokens) {
+                const newCreds = { ...creds, ...result.updatedTokens };
+                await supabase
+                  .from('connected_platforms')
+                  .update({ credentials: newCreds })
+                  .eq('user_id', userId)
+                  .eq('platform', 'tiktok');
+                
+                // Clean up result object for frontend
+                delete result.updatedTokens;
+              }
             }
           }
           break;
