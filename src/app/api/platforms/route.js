@@ -1,24 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabaseServer';
 
-async function getAuthenticatedUser() {
+export async function GET() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
 
-export async function GET() {
-  const user = await getAuthenticatedUser();
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const userId = user.id;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
   const { data, error } = await supabase
     .from('connected_platforms')
     .select('id, platform, connected_at, is_active')
@@ -33,7 +23,9 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const user = await getAuthenticatedUser();
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -51,12 +43,6 @@ export async function POST(request) {
   for (const [key, value] of Object.entries(credentials)) {
     trimmedCredentials[key] = typeof value === 'string' ? value.trim() : value;
   }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   const { data: existing } = await supabase
     .from('connected_platforms')
@@ -93,7 +79,9 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
-  const user = await getAuthenticatedUser();
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -106,11 +94,6 @@ export async function DELETE(request) {
     return Response.json({ error: 'Missing id' }, { status: 400 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
   const { error } = await supabase
     .from('connected_platforms')
     .delete()

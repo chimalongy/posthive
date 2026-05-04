@@ -1,24 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabaseServer';
 
-async function getAuthenticatedUser() {
+export async function GET() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
 
-export async function GET() {
-  const user = await getAuthenticatedUser();
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const userId = user.id;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   const { data, error } = await supabase
     .from('media_uploads')
@@ -34,7 +23,9 @@ export async function GET() {
 }
 
 export async function DELETE(request) {
-  const user = await getAuthenticatedUser();
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -45,12 +36,6 @@ export async function DELETE(request) {
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return Response.json({ error: 'No IDs provided' }, { status: 400 });
     }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
 
     const bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'posthive';
 
