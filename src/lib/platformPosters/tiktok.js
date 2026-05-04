@@ -1,5 +1,6 @@
-// PostHive — Complete TikTok poster (PULL_FROM_URL, sandbox + production)
+// PostHive — Complete TikTok poster (FILE_UPLOAD, sandbox + production)
 // Following the mandatory 4-step pipeline described in the TikTok Upload Flow Guide.
+// Switched to FILE_UPLOAD to bypass TikTok's strict domain verification requirements for PULL_FROM_URL.
 
 const BASE = 'https://open.tiktokapis.com/v2';
 
@@ -61,18 +62,23 @@ async function queryCreatorInfo(accessToken) {
 }
 
 /**
- * Step 2: Initialize Upload
+ * Step 2: Initialize Upload (Method B: FILE_UPLOAD)
  */
-async function initUpload(accessToken, mediaUrl, caption, creatorInfo, isSandbox) {
-  console.log('Initializing TikTok upload...');
+async function initUpload(accessToken, videoSize, caption, creatorInfo, isSandbox) {
+  console.log('Initializing TikTok upload (FILE_UPLOAD)...');
   const endpoint = isSandbox
     ? `${BASE}/post/publish/inbox/video/init/`
     : `${BASE}/post/publish/video/init/`;
 
+  const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB chunks
+  const totalChunkCount = Math.ceil(videoSize / CHUNK_SIZE);
+
   const body = {
     source_info: {
-      source: 'PULL_FROM_URL',
-      video_url: mediaUrl
+      source: 'FILE_UPLOAD',
+      video_size: videoSize,
+      chunk_size: CHUNK_SIZE,
+      total_chunk_count: totalChunkCount
     }
   };
 
@@ -102,7 +108,43 @@ async function initUpload(accessToken, mediaUrl, caption, creatorInfo, isSandbox
     throw new Error('TikTok upload initialization failed: ' + (d.error?.message || 'Unknown error'));
   }
 
-  return d.data.publish_id;
+  return {
+    publishId: d.data.publish_id,
+    uploadUrl: d.data.upload_url
+  };
+}
+
+/**
+ * Step 3: Transfer Video bytes in chunks
+ */
+async function uploadInChunks(uploadUrl, fileBuffer) {
+  console.log('Transferring video to TikTok in chunks...');
+  const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB
+  const totalSize = fileBuffer.byteLength;
+  const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, totalSize);
+    const chunk = fileBuffer.slice(start, end);
+
+    console.log(`Uploading chunk ${i + 1}/${totalChunks} (${chunk.byteLength} bytes)...`);
+    
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'video/mp4',
+        'Content-Length': String(chunk.byteLength),
+        'Content-Range': `bytes ${start}-${end - 1}/${totalSize}`,
+      },
+      body: chunk,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Chunk ${i + 1}/${totalChunks} upload failed: HTTP ${res.status} - ${errorText}`);
+    }
+  }
 }
 
 /**
@@ -111,7 +153,7 @@ async function initUpload(accessToken, mediaUrl, caption, creatorInfo, isSandbox
 async function pollStatus(accessToken, publishId, isSandbox) {
   console.log('Polling TikTok publish status...');
   let delay = 3000;
-  const maxAttempts = 20;
+  const maxAttempts = 30; // Increased for file processing
 
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise(r => setTimeout(r, delay));
@@ -176,19 +218,27 @@ export async function postToTikTok(credentials, mediaUrl, caption) {
       };
     }
 
+    // Pre-fetch: Get video bytes from mediaUrl (Supabase)
+    console.log('Fetching video from storage...');
+    const videoRes = await fetch(mediaUrl);
+    if (!videoRes.ok) throw new Error('Failed to fetch video from storage');
+    const videoBuffer = await videoRes.arrayBuffer();
+    const videoSize = videoBuffer.byteLength;
+
     // Step 1: Mandatory Creator Info Query
     const creatorInfo = await queryCreatorInfo(currentCreds.accessToken);
 
-    // Step 2: Initialize Upload
-    const publishId = await initUpload(
+    // Step 2: Initialize Upload (FILE_UPLOAD)
+    const { publishId, uploadUrl } = await initUpload(
       currentCreds.accessToken,
-      mediaUrl,
+      videoSize,
       caption,
       creatorInfo,
       currentCreds.isSandbox
     );
 
-    // Step 3: Video Transfer (Skipped because we use PULL_FROM_URL)
+    // Step 3: Video Transfer (FILE_UPLOAD chunks)
+    await uploadInChunks(uploadUrl, videoBuffer);
 
     // Step 4: Poll Status
     const result = await pollStatus(currentCreds.accessToken, publishId, currentCreds.isSandbox);
