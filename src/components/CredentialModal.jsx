@@ -28,9 +28,8 @@ const platformConfig = {
     fields: [
       { key: 'clientId', label: 'Client ID', type: 'text', help: 'https://console.cloud.google.com/apis/credentials' },
       { key: 'clientSecret', label: 'Client Secret', type: 'password', help: 'https://console.cloud.google.com/apis/credentials' },
-      { key: 'refreshToken', label: 'Refresh Token', type: 'password', help: 'https://developers.google.com/oauthplayground/' },
     ],
-    warning: 'YouTube allows approximately 6 video uploads per day via the API (10,000 daily quota units). A single upload costs 1,600 quota units.',
+    warning: 'YouTube requires OAuth authorization. Ensure you have enabled the "YouTube Data API v3" in your Google Cloud Console and added your Redirect URI to the Credentials page.',
   },
   tiktok: {
     name: 'TikTok',
@@ -181,7 +180,7 @@ export default function CredentialModal({ platform, onSave, onClose }) {
               disabled={loading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : platform === 'tiktok' ? 'Save & Authorize' : 'Save Credentials'}
+              {loading ? 'Saving...' : (platform === 'tiktok' || platform === 'youtube') ? 'Save & Authorize' : 'Save Credentials'}
             </button>
           </div>
         </form>

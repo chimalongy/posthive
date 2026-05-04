@@ -75,6 +75,11 @@ export async function POST(request) {
     return Response.json({ success: true, redirectUrl });
   }
 
+  if (platform === 'youtube') {
+    const redirectUrl = `/api/youtube/authorize?clientId=${encodeURIComponent(trimmedCredentials.clientId)}`;
+    return Response.json({ success: true, redirectUrl });
+  }
+
   return Response.json({ success: true });
 }
 
