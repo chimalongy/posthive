@@ -80,6 +80,11 @@ export async function POST(request) {
     return Response.json({ success: true, redirectUrl });
   }
 
+  if (platform === 'twitter') {
+    const redirectUrl = `/api/twitter/authorize?apiKey=${encodeURIComponent(trimmedCredentials.apiKey)}`;
+    return Response.json({ success: true, redirectUrl });
+  }
+
   return Response.json({ success: true });
 }
 

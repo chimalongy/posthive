@@ -45,10 +45,8 @@ const platformConfig = {
     fields: [
       { key: 'apiKey', label: 'API Key (Consumer Key)', type: 'text', help: 'https://developer.x.com/en/portal/projects-and-apps' },
       { key: 'apiKeySecret', label: 'API Key Secret (Consumer Secret)', type: 'password', help: 'https://developer.x.com/en/portal/projects-and-apps' },
-      { key: 'accessToken', label: 'Access Token', type: 'password', help: 'https://developer.x.com/en/portal/projects-and-apps' },
-      { key: 'accessTokenSecret', label: 'Access Token Secret', type: 'password', help: 'https://developer.x.com/en/portal/projects-and-apps' },
     ],
-    warning: 'Your app must be inside a Project in the X Developer Portal. Standalone apps (not in a project) will receive 403 errors when attempting to post. Ensure Read and Write permissions are enabled.',
+    warning: 'Twitter / X requires OAuth authorization. Enter your App API keys from the X Developer Portal, then click "Save & Authorize". Ensure your App has "Read and Write" permissions enabled in the User authentication settings.',
   },
 };
 
@@ -180,7 +178,7 @@ export default function CredentialModal({ platform, onSave, onClose }) {
               disabled={loading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : (platform === 'tiktok' || platform === 'youtube') ? 'Save & Authorize' : 'Save Credentials'}
+              {loading ? 'Saving...' : (platform === 'tiktok' || platform === 'youtube' || platform === 'twitter') ? 'Save & Authorize' : 'Save Credentials'}
             </button>
           </div>
         </form>
