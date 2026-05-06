@@ -78,23 +78,24 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
   const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
 
   // 1. INIT
-  const initParams = new URLSearchParams({
-    command: 'INIT',
-    media_type: mediaType,
-    total_bytes: String(totalBytes),
-    media_category: mediaCategory,
-  });
-
-  const initRes = await fetch(`${uploadUrl}?${initParams.toString()}`, {
+  const initRes = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
       Authorization: `Bearer ${accessToken}`,
     },
+    body: new URLSearchParams({
+      command: 'INIT',
+      media_type: mediaType,
+      total_bytes: String(totalBytes),
+      media_category: mediaCategory,
+    }),
   });
 
   const initData = await safeJson(initRes);
   console.log('X INIT response:', initData);
   if (!initRes.ok || !initData.media_id_string) {
+    console.error('X INIT failed detail:', initData);
     throw new Error(initData.error || initData.errors?.[0]?.message || 'X INIT failed');
   }
 
@@ -135,16 +136,16 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
 
   // 3. FINALIZE
   console.log('Finalizing X media upload...');
-  const finalizeParams = new URLSearchParams({
-    command: 'FINALIZE',
-    media_id: mediaId,
-  });
-
-  const finalizeRes = await fetch(`${uploadUrl}?${finalizeParams.toString()}`, {
+  const finalizeRes = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
       Authorization: `Bearer ${accessToken}`,
     },
+    body: new URLSearchParams({
+      command: 'FINALIZE',
+      media_id: mediaId,
+    }),
   });
 
   const finalizeData = await safeJson(finalizeRes);
