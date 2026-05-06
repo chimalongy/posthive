@@ -17,7 +17,11 @@ export async function GET(request) {
   }
 
   try {
-    const state = JSON.parse(decodeURIComponent(stateParam));
+    console.log('Twitter Callback - Raw stateParam:', stateParam);
+    const decodedState = decodeURIComponent(stateParam);
+    console.log('Twitter Callback - Decoded stateParam:', decodedState);
+    
+    const state = JSON.parse(decodedState);
     const { userId, clientId, codeVerifier } = state;
 
     if (!userId || !clientId || !codeVerifier) {
@@ -59,8 +63,10 @@ export async function GET(request) {
     });
 
     const tokenData = await tokenRes.json();
+    console.log('Twitter Token Data:', tokenData);
 
     if (!tokenRes.ok || !tokenData.access_token) {
+      console.error('Twitter Token Exchange Failed:', tokenData);
       throw new Error(tokenData.error_description || tokenData.error || 'Token exchange failed');
     }
 
