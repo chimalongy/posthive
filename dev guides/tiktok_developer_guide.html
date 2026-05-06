@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TikTok Developer Setup Guide — PostHive</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #181818;
+      --border: #222222;
+      --border2: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #777;
+      --accent: #fe2c55;
+      --accent2: #25f4ee;
+      --green: #1bda76;
+      --amber: #f5a623;
+      --red: #ff4d4d;
+      --blue: #4da6ff;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 40px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .tiktok-icon {
+      width: 44px;
+      height: 44px;
+      background: #000;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      border: 1px solid var(--border2);
+      flex-shrink: 0;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+
+    .header-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+      font-family: var(--mono);
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-family: var(--mono);
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid;
+    }
+
+    .pill-green {
+      color: var(--green);
+      border-color: #1bda7633;
+      background: #1bda760d;
+    }
+
+    .pill-amber {
+      color: var(--amber);
+      border-color: #f5a62333;
+      background: #f5a6230d;
+    }
+
+    .pill-red {
+      color: var(--red);
+      border-color: #ff4d4d33;
+      background: #ff4d4d0d;
+    }
+
+    .pill-blue {
+      color: var(--blue);
+      border-color: #4da6ff33;
+      background: #4da6ff0d;
+    }
+
+    .pill-muted {
+      color: var(--muted);
+      border-color: var(--border2);
+      background: transparent;
+    }
+
+    .pill-acc {
+      color: var(--accent);
+      border-color: #fe2c5533;
+      background: #fe2c550d;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 40px 0 16px;
+    }
+
+    .section-label-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent2);
+      letter-spacing: 0.1em;
+    }
+
+    .section-label-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-label-text {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    /* ── STEP CARD ── */
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .step:hover {
+      border-color: var(--border2);
+    }
+
+    .step-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 18px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent2);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-num.sandbox {
+      color: var(--blue);
+    }
+
+    .step-num.check {
+      color: var(--green);
+      font-size: 14px;
+    }
+
+    .step-num.flow-n {
+      color: var(--amber);
+    }
+
+    .step-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .step-arrow {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 16px;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .step.open .step-arrow {
+      transform: rotate(180deg);
+    }
+
+    .step-body {
+      display: none;
+      padding: 0 18px 16px 60px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .step.open .step-body {
+      display: block;
+    }
+
+    /* ── LIST ── */
+    .list {
+      list-style: none;
+    }
+
+    .list li {
+      font-size: 13px;
+      color: #aaa;
+      line-height: 1.65;
+      padding: 3px 0;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .list li::before {
+      content: '—';
+      color: var(--border2);
+      flex-shrink: 0;
+      margin-top: 0px;
+      font-family: var(--mono);
+    }
+
+    .list li strong {
+      color: var(--text);
+    }
+
+    /* ── CRED TABLE ── */
+    .cred-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .cred-table th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cred-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+
+    .cred-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .cred-table .field {
+      color: var(--accent2);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .cred-table .where {
+      color: #999;
+      font-size: 11.5px;
+    }
+
+    .cred-table .status-cell {
+      font-size: 11px;
+    }
+
+    .cred-table tr.removed td {
+      opacity: 0.45;
+    }
+
+    .cred-table tr.removed .field {
+      text-decoration: line-through;
+      color: var(--red);
+    }
+
+    /* ── CODE BLOCK ── */
+    pre {
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: #d0d0d0;
+      overflow-x: auto;
+      margin-top: 12px;
+      line-height: 1.7;
+    }
+
+    .json-key {
+      color: var(--accent2);
+    }
+
+    .json-str {
+      color: #f8c96b;
+    }
+
+    .json-num {
+      color: #b5cea8;
+    }
+
+    .json-cm {
+      color: #6a9955;
+      font-style: italic;
+    }
+
+    .sh-cmd {
+      color: var(--accent2);
+    }
+
+    .sh-flag {
+      color: #9cdcfe;
+    }
+
+    .sh-val {
+      color: #f8c96b;
+    }
+
+    /* ── FLOW ── */
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .flow-pill {
+      background: #1a1a1a;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 4px 11px;
+      font-size: 11.5px;
+      font-family: var(--mono);
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .flow-arrow {
+      color: var(--muted);
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+
+    /* ── WARNING / INFO / SUCCESS boxes ── */
+    .box {
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .box-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .warn {
+      background: #1a1500;
+      border: 1px solid #f5a62325;
+      color: #c9944a;
+    }
+
+    .info {
+      background: #001220;
+      border: 1px solid #4da6ff25;
+      color: #6db8ff;
+    }
+
+    .success {
+      background: #001810;
+      border: 1px solid #1bda7625;
+      color: #3dca77;
+    }
+
+    .danger {
+      background: #180000;
+      border: 1px solid #ff4d4d25;
+      color: #f07070;
+    }
+
+    /* ── TTL GRID ── */
+    .ttl-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .ttl-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .ttl-val {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--accent2);
+    }
+
+    .ttl-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: var(--mono);
+    }
+
+    /* ── SANDBOX COMPARISON ── */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .compare-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .compare-head {
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--mono);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compare-head.sandbox {
+      background: #00111a;
+      color: var(--blue);
+    }
+
+    .compare-head.prod {
+      background: #001a0a;
+      color: var(--green);
+    }
+
+    .compare-body {
+      padding: 12px 14px;
+    }
+
+    .compare-item {
+      font-size: 12px;
+      color: #999;
+      padding: 3px 0;
+      display: flex;
+      gap: 6px;
+    }
+
+    .compare-item::before {
+      content: '·';
+      color: var(--border2);
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    /* ── CODE INLINE ── */
+    code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      background: #1a1a1a;
+      border: 1px solid var(--border2);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--accent2);
+    }
+
+    /* ── FINAL TABLE ── */
+    .final-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .final-table th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 10px;
+      font-family: var(--mono);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 9px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .final-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+      color: #bbb;
+    }
+
+    .final-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .final-table .fn {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent2);
+      font-weight: 500;
+    }
+
+    .final-table tr.removed td {
+      opacity: 0.4;
+    }
+
+    .final-table tr.removed .fn {
+      text-decoration: line-through;
+      color: var(--red);
+    }
+
+    a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .header {
+        padding: 20px 16px;
+      }
+
+      .container {
+        padding: 0 12px 40px;
+      }
+
+      .step-body {
+        padding-left: 16px;
+      }
+
+      .compare-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .ttl-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      pre {
+        font-size: 10.5px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-logo">
+      <div class="tiktok-icon">🎵</div>
+      <div>
+        <h1>TikTok API — Full Developer Setup Guide</h1>
+        <div class="header-sub">PostHive Integration · Verified 2025–2026 · developers.tiktok.com</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span class="pill pill-green">✓ API v2 OAuth</span>
+      <span class="pill pill-blue">Sandbox Included</span>
+      <span class="pill pill-amber">Content Posting API</span>
+      <span class="pill pill-muted">Updated May 2026</span>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- SECTION 1 -->
+    <div class="section-label">
+      <span class="section-label-num">01</span>
+      <span class="section-label-line"></span>
+      <span class="section-label-text">Register your app — get static credentials</span>
+      <span class="section-label-line"></span>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step open">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num">1</div>
+        <div style="flex:1">
+          <div class="step-title">Create a TikTok Developer account</div>
+          <div class="step-desc">Visit developers.tiktok.com and sign up with a business email.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list">
+          <li>Go to <strong><a href="https://developers.tiktok.com" target="_blank">developers.tiktok.com</a></strong> —
+            this is completely separate from your personal TikTok account.</li>
+          <li>Click <strong>Sign up</strong>, enter your email, verify with the code sent to your inbox (you have 1
+            minute), then set a password and accept Terms.</li>
+          <li><strong>Strongly recommended:</strong> go to <strong>My organizations → Create organization</strong>. This
+            represents the owning business entity of your app and is required for production apps serving other users.
+          </li>
+          <li>Individual developer accounts work for sandbox/testing but are not recommended for real integrations.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num">2</div>
+        <div style="flex:1">
+          <div class="step-title">Register your app</div>
+          <div class="step-desc">Profile icon → Manage apps → Connect an app → select your Organization as owner.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list">
+          <li>Enter a <strong>meaningful App Name</strong> — generic names like "App12345" or "Test App" are rejected at
+            review. Use your brand name.</li>
+          <li>Select a <strong>Category</strong>, upload an <strong>App Icon</strong> (must meet TikTok icon specs), and
+            write a clear <strong>Description</strong> of what your app does.</li>
+          <li>Under platforms, enable <strong>Configure for Web</strong> — this is what enables OAuth redirect URIs for
+            a web app like PostHive.</li>
+          <li>Enter a real <strong>HTTPS Website URL</strong>. Localhost does not work in production. For local dev, see
+            Step 5 (ngrok).</li>
+          <li>Also required (apps created after September 9, 2024): <strong>Terms of Service URL</strong> and
+            <strong>Privacy Policy URL</strong>. These must be real, publicly accessible pages.</li>
+        </ul>
+        <div class="box warn"><span class="box-icon">⚠</span><span>TikTok requires your application to be intended for a
+            wide audience and will reject apps built for internal/private use only. Your ToS and Privacy Policy pages
+            must be real, not placeholder pages.</span></div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num">3</div>
+        <div style="flex:1">
+          <div class="step-title">Add products to your app</div>
+          <div class="step-desc">Left panel → + Add products → add Login Kit and Content Posting API.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list">
+          <li><strong>Login Kit</strong> — enables OAuth 2.0 user authentication and token generation. Requires Redirect
+            URI (HTTPS), ToS URL, Privacy Policy URL.</li>
+          <li><strong>Content Posting API</strong> — enables programmatic video and photo publishing. Enable the
+            <strong>Direct Post</strong> option for posts to go live immediately (may require a separate audit).</li>
+          <li>Required OAuth scopes for PostHive: <code>video.upload</code> <code>video.publish</code>
+            <code>user.info.basic</code></li>
+          <li>Add a Redirect URI in Login Kit config — this is the URL TikTok sends the user back to after they
+            authorize (e.g. <code>https://yourdomain.com/api/tiktok/callback</code>).</li>
+          <li>A maximum of 10 Redirect URIs is supported. URIs must be absolute, begin with <code>https</code>, and must
+            be static (no query parameters).</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num">4</div>
+        <div style="flex:1">
+          <div class="step-title">Get your Client Key and Client Secret &nbsp;<span class="pill pill-green"
+              style="font-size:10px">Static credentials</span></div>
+          <div class="step-desc">Manage apps → Your App → Basic information → Credentials → click the eye icon.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <table class="cred-table">
+          <thead>
+            <tr>
+              <th>Credential</th>
+              <th>Where to find it</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="field">client_key</td>
+              <td class="where">Developer Portal → Manage apps → Your App → Basic information → Credentials (click eye
+                icon)</td>
+              <td class="status-cell"><span class="pill pill-green">Static</span> Public identifier. Safe to use in
+                redirect URLs. Does not expire.</td>
+            </tr>
+            <tr>
+              <td class="field">client_secret</td>
+              <td class="where">Same location as client_key. Reveal with eye icon.</td>
+              <td class="status-cell"><span class="pill pill-red">Server only</span> Never send to browser. Never commit
+                to git. Does not expire.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num">5</div>
+        <div style="flex:1">
+          <div class="step-title">Verify your domain &nbsp;<span class="pill pill-muted"
+              style="font-size:10px">Production only — skip in Sandbox</span></div>
+          <div class="step-desc">App page → URL Properties → Verify Properties → choose Domain or URL Prefix.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list">
+          <li>Click <strong>URL Properties</strong> at the top of your app page → <strong>Verify Properties</strong> →
+            choose <strong>Domain</strong> (verifies entire domain including subdomains) or <strong>URL Prefix</strong>
+            (specific path).</li>
+          <li>TikTok gives you two options: download a <strong>signature file</strong> and upload to your server root,
+            or add a <strong>DNS TXT record</strong> to your domain host.</li>
+          <li><strong>Sandbox apps skip this step entirely</strong> — no domain verification is required in sandbox
+            mode. This makes sandbox ideal for early development.</li>
+          <li>For local development using sandbox, use <strong>ngrok</strong> to expose your local server:</li>
+        </ul>
+        <pre><span class="sh-cmd">npm install -g ngrok</span>
+<span class="sh-cmd">ngrok http 3000</span>
+<span class="json-cm"># Copy the https://xxxxx.ngrok.io URL</span>
+<span class="json-cm"># Set it as your Redirect URI in Login Kit config</span>
+<span class="json-cm"># Update TIKTOK_REDIRECT_URI in .env.local each session</span></pre>
+        <div class="box info"><span class="box-icon">ℹ</span><span>ngrok URLs change every session on the free plan. Use
+            a paid ngrok account with a fixed subdomain, or set up a staging server, to avoid updating the redirect URI
+            each time.</span></div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num">6</div>
+        <div style="flex:1">
+          <div class="step-title">Submit for App Review &nbsp;<span class="pill pill-amber" style="font-size:10px">5–10
+              business days</span></div>
+          <div class="step-desc">App review section → fill use case → submit. Required for real public posting.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list">
+          <li>Go to the <strong>App review</strong> section on your app page and fill in a clear description of your use
+            case.</li>
+          <li>You must provide: a <strong>demo video</strong> of your posting flow, Privacy Policy URL, Terms of Service
+            URL, and a statement of how user data is handled.</li>
+          <li>Approval typically takes <strong>5–10 business days in 2026</strong>. TikTok provides no official timeline
+            guarantees — factor this into your launch plan.</li>
+          <li><strong>Until approved:</strong> Direct Post (public posting) is unavailable. All posts land in the
+            creator's TikTok inbox as private drafts only.</li>
+          <li>If rejected, you'll see review comments in the history icon on your app page. Address them and resubmit.
+          </li>
+        </ul>
+        <div class="box warn"><span class="box-icon">⚠</span><span>Enabling the <strong>Direct Post</strong> option
+            under Content Posting API may require an additional separate audit beyond the standard app review. Plan
+            accordingly.</span></div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="section-label">
+      <span class="section-label-num">02</span>
+      <span class="section-label-line"></span>
+      <span class="section-label-text">OAuth 2.0 flow — get access token + refresh token</span>
+      <span class="section-label-line"></span>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step open">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num flow-n">7</div>
+        <div style="flex:1">
+          <div class="step-title">Run the OAuth 2.0 + PKCE authorization flow &nbsp;<span class="pill pill-green"
+              style="font-size:10px">Generates tokens</span></div>
+          <div class="step-desc">Runs each time a user connects their TikTok account to PostHive. Returns access_token
+            and refresh_token.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="flow">
+          <div class="flow-pill">User clicks "Connect TikTok"</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-pill">Redirect to /v2/auth/authorize/</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-pill">User grants permission on TikTok</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-pill">TikTok returns auth code to redirect_uri</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-pill">Server POSTs to /v2/oauth/token/</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-pill">Store access_token + refresh_token</div>
+        </div>
+
+        <p style="font-size:12.5px; color:var(--muted); margin-top:14px; margin-bottom:6px; font-family:var(--mono);">
+          Token exchange request:</p>
+        <pre>POST https://open.tiktokapis.com/v2/oauth/token/
+Content-Type: application/x-www-form-urlencoded
+
+<span class="sh-flag">client_key</span>=<span class="sh-val">YOUR_CLIENT_KEY</span>
+<span class="sh-flag">client_secret</span>=<span class="sh-val">YOUR_CLIENT_SECRET</span>
+<span class="sh-flag">code</span>=<span class="sh-val">AUTH_CODE_FROM_CALLBACK</span>
+<span class="sh-flag">grant_type</span>=<span class="sh-val">authorization_code</span>
+<span class="sh-flag">redirect_uri</span>=<span class="sh-val">YOUR_REDIRECT_URI</span></pre>
+
+        <p style="font-size:12.5px; color:var(--muted); margin-top:14px; margin-bottom:6px; font-family:var(--mono);">
+          Successful response — what you receive and what to store:</p>
+        <pre>{
+  <span class="json-key">"access_token"</span>:      <span class="json-str">"act.example12345..."</span>,   <span class="json-cm">// ← STORE THIS</span>
+  <span class="json-key">"expires_in"</span>:         <span class="json-num">86400</span>,                   <span class="json-cm">// 24 hours in seconds</span>
+  <span class="json-key">"refresh_token"</span>:     <span class="json-str">"rft.example12345..."</span>,   <span class="json-cm">// ← STORE THIS (replaces open_id)</span>
+  <span class="json-key">"refresh_expires_in"</span>: <span class="json-num">31536000</span>,               <span class="json-cm">// 365 days in seconds</span>
+  <span class="json-key">"open_id"</span>:           <span class="json-str">"afd97af1-b87b-..."</span>,    <span class="json-cm">// ← DO NOT STORE — no longer needed for auth</span>
+  <span class="json-key">"scope"</span>:             <span class="json-str">"user.info.basic,video.upload,video.publish"</span>,
+  <span class="json-key">"token_type"</span>:        <span class="json-str">"Bearer"</span>
+}</pre>
+
+        <div class="ttl-grid">
+          <div class="ttl-card">
+            <div class="ttl-val">24 hrs</div>
+            <div class="ttl-label">access_token TTL<br />(prefix: act.)</div>
+          </div>
+          <div class="ttl-card">
+            <div class="ttl-val">365 days</div>
+            <div class="ttl-label">refresh_token TTL<br />(prefix: rft.)</div>
+          </div>
+        </div>
+
+        <div class="box warn" style="margin-top:12px"><span class="box-icon">⚠</span><span><strong>Both tokens rotate on
+              every refresh call.</strong> After calling <code>/v2/oauth/token/</code> with
+            <code>grant_type=refresh_token</code>, the old tokens become invalid immediately. Always save the new
+            access_token and refresh_token pair returned in the response.</span></div>
+
+        <p style="font-size:12.5px; color:var(--muted); margin-top:14px; margin-bottom:6px; font-family:var(--mono);">
+          Token refresh request (call before every post if access_token is expired):</p>
+        <pre>POST https://open.tiktokapis.com/v2/oauth/token/
+Content-Type: application/x-www-form-urlencoded
+
+<span class="sh-flag">client_key</span>=<span class="sh-val">YOUR_CLIENT_KEY</span>
+<span class="sh-flag">client_secret</span>=<span class="sh-val">YOUR_CLIENT_SECRET</span>
+<span class="sh-flag">grant_type</span>=<span class="sh-val">refresh_token</span>
+<span class="sh-flag">refresh_token</span>=<span class="sh-val">STORED_REFRESH_TOKEN</span></pre>
+
+        <div class="box info"><span class="box-icon">ℹ</span><span>Store
+            <code>token_expires_at = Date.now() + (expires_in * 1000)</code> alongside the token. Before every post,
+            check if expired. If yes, refresh first. This avoids silent 401 failures mid-post.</span></div>
+      </div>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="section-label">
+      <span class="section-label-num">03</span>
+      <span class="section-label-line"></span>
+      <span class="section-label-text">TikTok Sandbox — test without app review</span>
+      <span class="section-label-line"></span>
+    </div>
+
+    <!-- STEP S1 -->
+    <div class="step open">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num sandbox">S1</div>
+        <div style="flex:1">
+          <div class="step-title">Enable Sandbox mode on your app</div>
+          <div class="step-desc">App page → toggle Production → Sandbox → Create Sandbox → name it → clone from
+            production.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list">
+          <li>On your app page, switch the toggle next to your app's name from <strong>Production</strong> to
+            <strong>Sandbox</strong>.</li>
+          <li>Click <strong>Create Sandbox</strong> → enter a name (e.g. "PostHive Dev") → choose <strong>Clone from
+              Production</strong> so all your product configs copy over → click Confirm.</li>
+          <li>Add products inside the sandbox (Login Kit, Content Posting API) and click <strong>Apply changes</strong>.
+          </li>
+          <li>You can create up to <strong>5 sandboxes</strong> per app. Use the [+] button in the left nav to add more.
+          </li>
+          <li><strong>No domain verification required</strong> in sandbox — start testing immediately.</li>
+          <li>Sandbox uses the <strong>same Client Key and Client Secret</strong> as your production app. No new
+            credentials to generate.</li>
+        </ul>
+        <div class="box success"><span class="box-icon">✓</span><span>Once you're ready to go live, you can import your
+            tested sandbox configuration directly into your production Draft: switch to Production → Draft → Import →
+            select your sandbox.</span></div>
+      </div>
+    </div>
+
+    <!-- STEP S2 -->
+    <div class="step">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num sandbox">S2</div>
+        <div style="flex:1">
+          <div class="step-title">Add test TikTok accounts (target users)</div>
+          <div class="step-desc">Sandbox settings → Target users → Add account. Up to 10 accounts allowed.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list">
+          <li>Go to <strong>Sandbox settings → Target users → Add account</strong>.</li>
+          <li>You'll be redirected to log into a TikTok account. Use a real TikTok account you own (create dedicated
+            test accounts for development — separate from real creator accounts).</li>
+          <li>The account must accept TikTok Developer Terms of Service once during this flow.</li>
+          <li>Only these added accounts can go through the OAuth flow in sandbox mode. All other TikTok accounts will be
+            blocked.</li>
+          <li>You can add up to <strong>10 target user accounts</strong> per sandbox.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP S3 -->
+    <div class="step">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num sandbox">S3</div>
+        <div style="flex:1">
+          <div class="step-title">Sandbox vs Production — what works and what doesn't</div>
+          <div class="step-desc">Key differences between sandbox and production environments.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <div class="compare-grid">
+          <div class="compare-card">
+            <div class="compare-head sandbox">🧪 Sandbox</div>
+            <div class="compare-body">
+              <div class="compare-item">Full OAuth flow (access_token + refresh_token)</div>
+              <div class="compare-item">Video/photo uploads to TikTok inbox as drafts</div>
+              <div class="compare-item">Token refresh flow works identically</div>
+              <div class="compare-item">Creator info query</div>
+              <div class="compare-item">Publish status polling</div>
+              <div class="compare-item">File size up to <strong>128 MB</strong></div>
+              <div class="compare-item">No domain verification needed</div>
+              <div class="compare-item">No app review needed — ready instantly</div>
+              <div class="compare-item">Same Client Key/Secret as production</div>
+            </div>
+          </div>
+          <div class="compare-card">
+            <div class="compare-head prod">🚀 Production</div>
+            <div class="compare-body">
+              <div class="compare-item">Direct Post — videos go live publicly</div>
+              <div class="compare-item">File size up to <strong>10 GB</strong></div>
+              <div class="compare-item">Unlimited users (any TikTok account)</div>
+              <div class="compare-item">Duration up to 10 minutes</div>
+              <div class="compare-item">Webhook callbacks for upload status</div>
+              <div class="compare-item">Duet/Stitch permissions</div>
+              <div class="compare-item">Branded content disclosures</div>
+              <div class="compare-item">Geo-targeting of video visibility</div>
+            </div>
+          </div>
+        </div>
+        <div class="box danger" style="margin-top:12px"><span class="box-icon">✕</span><span><strong>Sandbox does NOT
+              support:</strong> Direct Post for public videos, Data Portability API, files over 128 MB, or more than 10
+            test users.</span></div>
+      </div>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="section-label">
+      <span class="section-label-num">04</span>
+      <span class="section-label-line"></span>
+      <span class="section-label-text">PostHive — implement sandbox + production toggle</span>
+      <span class="section-label-line"></span>
+    </div>
+
+    <div class="step open">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num check">✓</div>
+        <div style="flex:1">
+          <div class="step-title">Implement sandbox/production mode switching in PostHive</div>
+          <div class="step-desc">Add an is_sandbox toggle in the TikTok CredentialModal and switch API endpoints
+            accordingly.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <ul class="list" style="margin-bottom:12px">
+          <li>Add a <strong>Sandbox mode toggle</strong> in the TikTok CredentialModal — a clearly labelled switch:
+            "Test mode (Sandbox)" on/off.</li>
+          <li>When sandbox is ON: store <code>is_sandbox: true</code> in credentials and show a yellow banner on the
+            platform card: <em>"Sandbox — posts land in your TikTok inbox as drafts"</em>.</li>
+          <li>When sandbox is OFF: use the direct post endpoint for publicly published content.</li>
+        </ul>
+        <pre><span class="json-cm">// lib/platformPosters/tiktok.js</span>
+<span class="json-cm">// Choose endpoint based on is_sandbox flag</span>
+
+const ENDPOINT = credentials.is_sandbox
+  ? <span class="json-str">'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/'</span>
+  : <span class="json-str">'https://open.tiktokapis.com/v2/post/publish/video/init/'</span>;</pre>
+
+        <div class="box info"><span class="box-icon">ℹ</span><span>In sandbox mode, videos appear in the creator's
+            TikTok inbox as drafts — they are never published publicly. This is perfect for testing your entire posting
+            pipeline end-to-end before going live.</span></div>
+      </div>
+    </div>
+
+    <!-- SECTION 5 -->
+    <div class="section-label">
+      <span class="section-label-num">05</span>
+      <span class="section-label-line"></span>
+      <span class="section-label-text">Final credential fields — CredentialModal form</span>
+      <span class="section-label-line"></span>
+    </div>
+
+    <div class="step open">
+      <div class="step-head" onclick="toggle(this)">
+        <div class="step-num check">✓</div>
+        <div style="flex:1">
+          <div class="step-title">Store exactly these fields in <code>connected_platforms.credentials</code> (jsonb)
+          </div>
+          <div class="step-desc">Updated credential list — open_id removed, refresh_token and is_sandbox added.</div>
+        </div>
+        <div class="step-arrow">⌄</div>
+      </div>
+      <div class="step-body">
+        <table class="final-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Status</th>
+              <th>Where / How to get it</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="fn">client_key</td>
+              <td><span class="pill pill-green">✓ Current</span></td>
+              <td>Developer Portal → Manage apps → Basic information → Credentials</td>
+              <td>Static, does not expire</td>
+            </tr>
+            <tr>
+              <td class="fn">client_secret</td>
+              <td><span class="pill pill-green">✓ Current</span></td>
+              <td>Same location as client_key. Eye icon to reveal.</td>
+              <td>Server-side only. Never expose to browser or logs</td>
+            </tr>
+            <tr>
+              <td class="fn">access_token</td>
+              <td><span class="pill pill-green">✓ Current</span></td>
+              <td>Returned from OAuth token exchange at /v2/oauth/token/</td>
+              <td>TTL: 24 hrs. Prefix: act. Refresh before every post.</td>
+            </tr>
+            <tr>
+              <td class="fn">refresh_token</td>
+              <td><span class="pill pill-amber">Replaces open_id</span></td>
+              <td>Returned from same OAuth token exchange response</td>
+              <td>TTL: 365 days. Prefix: rft. Both tokens rotate on each refresh.</td>
+            </tr>
+            <tr>
+              <td class="fn">token_expires_at</td>
+              <td><span class="pill pill-blue">Add this</span></td>
+              <td>Calculate: <code>Date.now() + expires_in * 1000</code></td>
+              <td>Enables proactive refresh before TTL expires</td>
+            </tr>
+            <tr>
+              <td class="fn">is_sandbox</td>
+              <td><span class="pill pill-blue">Add this</span></td>
+              <td>From CredentialModal toggle set by the user</td>
+              <td>Switches between inbox endpoint and direct post endpoint</td>
+            </tr>
+            <tr class="removed">
+              <td class="fn">open_id</td>
+              <td><span class="pill pill-red">Removed</span></td>
+              <td>—</td>
+              <td>No longer required for API v2 authentication. Runtime metadata only. Do not store.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="box warn" style="margin-top:14px"><span class="box-icon">⚠</span><span>In your CredentialModal for
+            TikTok, the <code>client_key</code> and <code>client_secret</code> are entered once by the user from their
+            Developer Portal. The <code>access_token</code> and <code>refresh_token</code> are obtained automatically
+            when the user clicks "Authorize with TikTok" — your app handles the OAuth flow server-side and stores the
+            returned tokens. Do not ask users to manually paste tokens.</span></div>
+      </div>
+    </div>
+
+    <!-- FOOTER NOTE -->
+    <div
+      style="margin-top:40px; padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">
+      <p style="font-family:var(--mono); font-size:11px; color:var(--muted); line-height:1.8;">
+        <span style="color:var(--accent2)">SOURCE</span> — All credential fields and setup steps sourced from official
+        TikTok for Developers documentation: developers.tiktok.com/doc/getting-started-create-an-app,
+        /doc/add-a-sandbox, /doc/oauth-user-access-token-management, /doc/content-posting-api-get-started · Last
+        verified May 2026
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    function toggle(el) {
+      const card = el.closest('.step');
+      card.classList.toggle('open');
+    }
+
+    // open all on load
+    document.querySelectorAll('.step').forEach(s => s.classList.add('open'));
+  </script>
+</body>
+
+</html>

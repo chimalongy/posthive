@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TikTok Upload Flow Guide — PostHive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{--bg:#09090b;--surf:#111113;--surf2:#18181b;--surf3:#1f1f23;--bdr:#27272a;--bdr2:#3f3f46;--tx:#f4f4f5;--tx2:#a1a1aa;--tx3:#71717a;--cyan:#22d3ee;--green:#4ade80;--amber:#fbbf24;--red:#f87171;--blue:#60a5fa;--violet:#a78bfa;--mono:'IBM Plex Mono',monospace;--sans:'Outfit',sans-serif;--r:10px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px;line-height:1.65;}
+.hdr{background:var(--surf);border-bottom:1px solid var(--bdr);padding:28px 40px 24px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.hdr-l{display:flex;gap:14px;align-items:center;}
+.hdr-ico{width:46px;height:46px;background:#000;border-radius:12px;border:1px solid var(--bdr2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.hdr h1{font-size:20px;font-weight:700;letter-spacing:-.4px;}
+.hdr-sub{font-family:var(--mono);font-size:11.5px;color:var(--tx3);margin-top:3px;}
+.pills{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.pill{font-family:var(--mono);font-size:10.5px;font-weight:500;padding:3px 9px;border-radius:4px;border:1px solid;display:inline-flex;align-items:center;gap:5px;}
+.p-cyan{color:var(--cyan);border-color:#22d3ee28;background:#22d3ee08;}
+.p-green{color:var(--green);border-color:#4ade8028;background:#4ade8008;}
+.p-amber{color:var(--amber);border-color:#fbbf2428;background:#fbbf2408;}
+.p-red{color:var(--red);border-color:#f8717128;background:#f8717108;}
+.p-blue{color:var(--blue);border-color:#60a5fa28;background:#60a5fa08;}
+.p-muted{color:var(--tx3);border-color:var(--bdr);background:transparent;}
+.wrap{max-width:940px;margin:0 auto;padding:0 24px 72px;}
+.sec{display:flex;align-items:center;gap:12px;margin:40px 0 16px;}
+.sec-tag{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--cyan);letter-spacing:.1em;white-space:nowrap;}
+.sec-line{flex:1;height:1px;background:var(--bdr);}
+.sec-lbl{font-family:var(--mono);font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.12em;color:var(--tx3);white-space:nowrap;}
+.flow-bar{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:20px 22px;margin-top:28px;overflow-x:auto;}
+.flow-bar-title{font-family:var(--mono);font-size:10.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;}
+.flow-track{display:flex;align-items:stretch;gap:0;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:100px;}
+.fn-num{font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--cyan);letter-spacing:.08em;}
+.fn-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:9px 8px;width:100%;text-align:center;font-size:11.5px;font-weight:500;color:var(--tx);transition:border-color .2s;}
+.fn-box:hover{border-color:var(--cyan);}
+.fn-box.sb{border-color:#60a5fa44;background:#0c1a2e;}
+.fn-sub{font-size:10px;color:var(--tx3);text-align:center;font-family:var(--mono);}
+.flow-arr{display:flex;align-items:center;padding:0 5px;margin-top:19px;color:var(--bdr2);font-size:15px;font-family:var(--mono);flex-shrink:0;}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:10px;overflow:hidden;}
+.card-hd{display:flex;gap:13px;padding:16px 18px;cursor:pointer;user-select:none;align-items:flex-start;}
+.cnum{width:28px;height:28px;border-radius:6px;background:var(--surf2);border:1px solid var(--bdr2);font-family:var(--mono);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;color:var(--cyan);flex-shrink:0;margin-top:1px;}
+.cnum.am{color:var(--amber);}
+.cnum.gn{color:var(--green);font-size:15px;}
+.cnum.bl{color:var(--blue);}
+.cnum.rd{color:var(--red);}
+.ctitle{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.csub{font-size:12.5px;color:var(--tx2);line-height:1.5;}
+.chevron{margin-left:auto;color:var(--tx3);font-size:16px;transition:transform .2s;flex-shrink:0;padding-top:2px;}
+.card.open .chevron{transform:rotate(180deg);}
+.card-body{display:none;padding:14px 18px 18px 59px;border-top:1px solid var(--bdr);}
+.card.open .card-body{display:block;}
+ul.dl{list-style:none;}
+ul.dl li{font-size:13px;color:var(--tx2);line-height:1.65;padding:3px 0;display:flex;gap:9px;align-items:flex-start;}
+ul.dl li::before{content:'–';color:var(--bdr2);flex-shrink:0;font-family:var(--mono);}
+ul.dl li strong{color:var(--tx);}
+.box{border-radius:8px;padding:11px 14px;font-size:12.5px;line-height:1.6;margin-top:12px;display:flex;gap:10px;align-items:flex-start;}
+.box-i{font-size:14px;flex-shrink:0;margin-top:1px;}
+.warn{background:#1c1500;border:1px solid #fbbf2422;color:#d49e40;}
+.info{background:#0c1220;border:1px solid #60a5fa22;color:#7ab8f5;}
+.succ{background:#0c1a10;border:1px solid #4ade8022;color:#4ade80;}
+.dngr{background:#1a0c0c;border:1px solid #f8717122;color:#f07070;}
+.sb-box{background:#0c1422;border:1px solid #60a5fa33;border-left:3px solid var(--blue);color:#7ab8f5;}
+.pr-box{background:#0c1a10;border:1px solid #4ade8033;border-left:3px solid var(--green);color:#5ecb76;}
+pre{background:#060608;border:1px solid var(--bdr);border-radius:8px;padding:16px 18px;font-family:var(--mono);font-size:11.5px;color:#d4d4d4;overflow-x:auto;margin-top:12px;line-height:1.75;}
+.jk{color:var(--cyan);}
+.jv{color:#fbbf24;}
+.jn{color:#86efac;}
+.cm{color:#52525b;font-style:italic;}
+.hl{color:#f87171;}
+.url{color:#86efac;}
+.kw{color:#c084fc;}
+code{font-family:var(--mono);font-size:11.5px;background:var(--surf2);border:1px solid var(--bdr2);border-radius:3px;padding:1px 5px;color:var(--cyan);}
+.tbl{width:100%;border-collapse:collapse;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-top:12px;font-size:13px;}
+.tbl th{background:var(--surf2);color:var(--tx3);font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;padding:9px 13px;text-align:left;border-bottom:1px solid var(--bdr);}
+.tbl td{padding:10px 13px;border-bottom:1px solid var(--bdr);vertical-align:top;line-height:1.5;color:var(--tx2);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl .mn{font-family:var(--mono);font-size:11.5px;color:var(--cyan);}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.cmp-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;overflow:hidden;}
+.cmp-hd{padding:10px 14px;font-size:12px;font-weight:600;font-family:var(--mono);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:7px;}
+.cmp-hd.sb{background:#0a1525;color:var(--blue);}
+.cmp-hd.pr{background:#0a1a0e;color:var(--green);}
+.cmp-body{padding:12px 14px;}
+.cmp-item{font-size:12px;color:var(--tx2);padding:3px 0;display:flex;gap:7px;}
+.cmp-item::before{content:'·';color:var(--bdr2);font-size:18px;line-height:1.1;}
+.sg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px;}
+.si{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:11px 13px;}
+.sn{font-family:var(--mono);font-size:12px;font-weight:600;margin-bottom:4px;}
+.sd{font-size:12px;color:var(--tx2);line-height:1.5;}
+.s-pr{color:var(--amber);}
+.s-ok{color:var(--green);}
+.s-fl{color:var(--red);}
+.s-ib{color:var(--blue);}
+a{color:var(--cyan);text-decoration:none;}
+a:hover{text-decoration:underline;}
+p.sub{font-size:13px;color:var(--tx2);margin:14px 0 8px;}
+p.sub strong{color:var(--tx);}
+@media(max-width:640px){.hdr{padding:18px 16px;}.wrap{padding:0 14px 48px;}.card-body{padding-left:16px;}.cmp-grid,.sg{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="hdr-ico">🎵</div>
+    <div>
+      <h1>TikTok Upload Flow — Complete Developer Guide</h1>
+      <div class="hdr-sub">PostHive · Content Posting API v2 · Verified May 2026 · developers.tiktok.com</div>
+    </div>
+  </div>
+  <div class="pills">
+    <span class="pill p-amber">⚠ Multi-Step Required</span>
+    <span class="pill p-blue">Sandbox Covered</span>
+    <span class="pill p-green">Full JS Code</span>
+    <span class="pill p-muted">Official Docs</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+<div class="flow-bar">
+  <div class="flow-bar-title">Complete upload pipeline — every step your code must execute in order</div>
+  <div class="flow-track">
+    <div class="flow-node"><div class="fn-num">STEP 0</div><div class="fn-box">Token Refresh</div><div class="fn-sub">before every post</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node"><div class="fn-num">STEP 1</div><div class="fn-box">Query Creator Info</div><div class="fn-sub">mandatory first call</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node"><div class="fn-num">STEP 2</div><div class="fn-box">Init Upload</div><div class="fn-sub">get publish_id</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node"><div class="fn-num">STEP 3</div><div class="fn-box">Transfer Video</div><div class="fn-sub">chunks or URL pull</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node"><div class="fn-num">STEP 4</div><div class="fn-box">Poll Status</div><div class="fn-sub">until COMPLETE</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node"><div class="fn-num">RESULT</div><div class="fn-box sb">Live / Draft</div><div class="fn-sub">prod / sandbox</div></div>
+  </div>
+</div>
+
+<div class="box warn" style="margin-top:14px"><span class="box-i">⚠</span><span><strong>TikTok is not like any other platform.</strong> Facebook, Instagram, and Twitter accept a single POST with a media URL. TikTok requires a mandatory 4-step pipeline: creator info query → init → video transfer → async status polling. You cannot skip or reorder any step. Silent failures are common if you do.</span></div>
+
+<!-- STEP 0 -->
+<div class="sec"><span class="sec-tag">STEP 0</span><span class="sec-line"></span><span class="sec-lbl">Token refresh — run before every single upload</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum am">0</div>
+    <div style="flex:1">
+      <div class="ctitle">Refresh the access token before starting the pipeline <span class="pill p-red" style="font-size:10px">24hr TTL</span></div>
+      <div class="csub">Access tokens expire every 24 hours. Check expiry and refresh proactively — never wait for a 401 error mid-upload.</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+    <ul class="dl">
+      <li>When credentials were stored during OAuth, you should have saved <code>token_expires_at = Date.now() + (expires_in * 1000)</code>.</li>
+      <li>Before starting any upload pipeline, compare <code>Date.now()</code> with <code>token_expires_at</code>. If within 5 minutes of expiry — refresh immediately.</li>
+      <li>Do NOT wait for the API to return a 401. By then your pipeline is already broken mid-upload.</li>
+      <li><strong>Both tokens rotate on every refresh.</strong> The old access_token and refresh_token become invalid immediately. Save the new pair back to your database before continuing.</li>
+    </ul>
+    <pre><span class="cm">// lib/platformPosters/tiktok.js</span>
+<span class="kw">async function</span> refreshIfNeeded(credentials) {
+  <span class="kw">const</span> BUFFER = 5 * 60 * 1000; <span class="cm">// 5 minutes buffer</span>
+  <span class="kw">if</span> (Date.now() &lt; credentials.token_expires_at - BUFFER) {
+    <span class="kw">return</span> credentials; <span class="cm">// still valid, continue</span>
+  }
+
+  <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="jv">'https://open.tiktokapis.com/v2/oauth/token/'</span>, {
+    method: <span class="jv">'POST'</span>,
+    headers: { <span class="jk">'Content-Type'</span>: <span class="jv">'application/x-www-form-urlencoded'</span> },
+    body: <span class="kw">new</span> URLSearchParams({
+      client_key:    credentials.client_key,
+      client_secret: credentials.client_secret,
+      grant_type:    <span class="jv">'refresh_token'</span>,
+      refresh_token: credentials.refresh_token,
+    }),
+  });
+
+  <span class="kw">const</span> d = <span class="kw">await</span> res.json();
+  <span class="kw">if</span> (!d.access_token) <span class="kw">throw new</span> Error(<span class="jv">'TikTok token refresh failed: '</span> + JSON.stringify(d));
+
+  <span class="kw">const</span> updated = {
+    ...credentials,
+    access_token:     d.access_token,
+    refresh_token:    d.refresh_token,   <span class="cm">// new refresh token — old one is now invalid</span>
+    token_expires_at: Date.now() + (d.expires_in * 1000),
+  };
+
+  <span class="cm">// Save updated tokens back to Supabase immediately</span>
+  <span class="cm">// await supabase.from('connected_platforms')</span>
+  <span class="cm">//   .update({ credentials: updated }).eq('id', platformRecordId);</span>
+
+  <span class="kw">return</span> updated;
+}</pre>
+    <div class="box info"><span class="box-i">ℹ</span><span>If the refresh_token itself has expired (365-day TTL), there is no silent recovery. The user must re-authorize your app through the full OAuth flow again. Build a re-auth prompt into your UI for this case.</span></div>
+  </div>
+</div>
+
+<!-- STEP 1 -->
+<div class="sec"><span class="sec-tag">STEP 1</span><span class="sec-line"></span><span class="sec-lbl">Query creator info — mandatory before every upload init</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum">1</div>
+    <div style="flex:1">
+      <div class="ctitle">POST /v2/post/publish/creator_info/query/ <span class="pill p-amber" style="font-size:10px">Required by TikTok</span></div>
+      <div class="csub">Returns the creator's allowed privacy levels, max video duration, interaction capabilities. Must be called before Step 2 — not all creators have the same posting options.</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+    <ul class="dl">
+      <li>This call is <strong>mandatory</strong> before every upload. It returns what this specific creator account is allowed to post — privacy options vary per account.</li>
+      <li>Use <code>privacy_level_options[0]</code> as your default privacy when building the init request in Step 2.</li>
+      <li>In <strong>sandbox</strong>, this call will return only <code>SELF_ONLY</code> in privacy_level_options — this is expected. It means posts go to the creator's private inbox.</li>
+      <li><strong>Rate limit:</strong> 6 requests per minute per user access_token.</li>
+    </ul>
+    <pre>POST <span class="url">https://open.tiktokapis.com/v2/post/publish/creator_info/query/</span>
+Authorization: Bearer <span class="jv">act.YOUR_ACCESS_TOKEN</span>
+Content-Type: application/json; charset=UTF-8
+
+<span class="cm">// No request body needed</span></pre>
+    <pre><span class="cm">// Response</span>
+{
+  <span class="jk">"data"</span>: {
+    <span class="jk">"creator_username"</span>:           <span class="jv">"@youruser"</span>,
+    <span class="jk">"privacy_level_options"</span>:       [<span class="jv">"PUBLIC_TO_EVERYONE"</span>, <span class="jv">"MUTUAL_FOLLOW_FRIENDS"</span>, <span class="jv">"SELF_ONLY"</span>],
+    <span class="jk">"duet_disabled"</span>:              <span class="jn">false</span>,
+    <span class="jk">"stitch_disabled"</span>:            <span class="jn">false</span>,
+    <span class="jk">"comment_disabled"</span>:           <span class="jn">false</span>,
+    <span class="jk">"max_video_post_duration_sec"</span>: <span class="jn">600</span>   <span class="cm">// 10 minutes max for this creator</span>
+  },
+  <span class="jk">"error"</span>: { <span class="jk">"code"</span>: <span class="jv">"ok"</span> }
+}</pre>
+    <pre><span class="kw">async function</span> queryCreatorInfo(accessToken) {
+  <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="jv">'https://open.tiktokapis.com/v2/post/publish/creator_info/query/'</span>, {
+    method: <span class="jv">'POST'</span>,
+    headers: {
+      <span class="jk">'Authorization'</span>: <span class="jv">`Bearer ${accessToken}`</span>,
+      <span class="jk">'Content-Type'</span>:  <span class="jv">'application/json; charset=UTF-8'</span>,
+    },
+  });
+  <span class="kw">const</span> d = <span class="kw">await</span> res.json();
+  <span class="kw">if</span> (d.error?.code !== <span class="jv">'ok'</span>) <span class="kw">throw new</span> Error(<span class="jv">'Creator info failed: '</span> + d.error?.message);
+  <span class="kw">return</span> d.data;
+}</pre>
+  </div>
+</div>
+
+<!-- STEP 2 -->
+<div class="sec"><span class="sec-tag">STEP 2</span><span class="sec-line"></span><span class="sec-lbl">Initialize upload — choose PULL_FROM_URL or FILE_UPLOAD</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum">2</div>
+    <div style="flex:1">
+      <div class="ctitle">Initialize the upload — returns publish_id and upload_url <span class="pill p-cyan" style="font-size:10px">upload_url valid 1 hour only</span></div>
+      <div class="csub">Two source methods. PULL_FROM_URL is recommended for PostHive — video is already in Supabase Storage with a public URL. FILE_UPLOAD requires chunked PUT requests in Step 3.</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+
+    <p class="sub">Use the right endpoint based on <strong>sandbox vs production</strong>:</p>
+    <table class="tbl">
+      <thead><tr><th>Mode</th><th>Endpoint</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-blue" style="font-size:10px">Sandbox</span></td><td class="mn">/v2/post/publish/inbox/video/init/</td><td>Sent to creator's private TikTok inbox as a draft. Never public.</td></tr>
+        <tr><td><span class="pill p-green" style="font-size:10px">Production</span></td><td class="mn">/v2/post/publish/video/init/</td><td>Posted to creator's TikTok profile (per privacy_level setting).</td></tr>
+      </tbody>
+    </table>
+
+    <p class="sub"><strong>Method A — PULL_FROM_URL</strong> (recommended for PostHive)</p>
+    <ul class="dl" style="margin-bottom:10px">
+      <li>TikTok's servers fetch the video directly from your public Supabase Storage URL. You only send the URL — no file bytes transferred from your server.</li>
+      <li>No chunking logic required. No Content-Range headers. Far simpler implementation.</li>
+      <li>The URL must be <code>https://</code>, publicly accessible without auth headers, and the domain must be verified in TikTok Developer Portal URL properties. <strong>Add your Supabase project storage domain</strong> (e.g. <code>xxxx.supabase.co</code>) to URL properties.</li>
+      <li>The URL must not redirect to another URL.</li>
+    </ul>
+    <pre><span class="cm">// Method A — PULL_FROM_URL (Production)</span>
+POST <span class="url">https://open.tiktokapis.com/v2/post/publish/video/init/</span>
+Authorization: Bearer <span class="jv">act.YOUR_ACCESS_TOKEN</span>
+Content-Type: application/json; charset=UTF-8
+
+{
+  <span class="jk">"post_info"</span>: {
+    <span class="jk">"title"</span>:                   <span class="jv">"Your caption #hashtag"</span>,
+    <span class="jk">"privacy_level"</span>:           <span class="jv">"PUBLIC_TO_EVERYONE"</span>,  <span class="cm">// use privacy_level_options[0] from Step 1</span>
+    <span class="jk">"disable_duet"</span>:            <span class="jn">false</span>,
+    <span class="jk">"disable_comment"</span>:         <span class="jn">false</span>,
+    <span class="jk">"disable_stitch"</span>:          <span class="jn">false</span>,
+    <span class="jk">"video_cover_timestamp_ms"</span>: <span class="jn">1000</span>   <span class="cm">// thumbnail frame at 1 second</span>
+  },
+  <span class="jk">"source_info"</span>: {
+    <span class="jk">"source"</span>:    <span class="jv">"PULL_FROM_URL"</span>,
+    <span class="jk">"video_url"</span>: <span class="jv">"https://xxxx.supabase.co/storage/v1/object/public/media-uploads/..."</span>
+  }
+}</pre>
+
+    <div class="box sb-box"><span class="box-i">🧪</span><span><strong>Sandbox mode:</strong> Use the inbox endpoint. Omit the <code>post_info</code> block entirely — it is not supported by the inbox endpoint. Only send <code>source_info</code>.</span></div>
+
+    <pre><span class="cm">// Method A — PULL_FROM_URL (Sandbox — no post_info block)</span>
+POST <span class="url">https://open.tiktokapis.com/v2/post/publish/inbox/video/init/</span>
+Authorization: Bearer <span class="jv">act.YOUR_ACCESS_TOKEN</span>
+Content-Type: application/json; charset=UTF-8
+
+{
+  <span class="jk">"source_info"</span>: {
+    <span class="jk">"source"</span>:    <span class="jv">"PULL_FROM_URL"</span>,
+    <span class="jk">"video_url"</span>: <span class="jv">"https://xxxx.supabase.co/storage/v1/object/public/media-uploads/..."</span>
+  }
+}</pre>
+
+    <p class="sub"><strong>Method B — FILE_UPLOAD</strong> (when sending raw video bytes from your server)</p>
+    <ul class="dl" style="margin-bottom:10px">
+      <li>Use when the video is not yet on a public CDN. You calculate chunk math and send binary data in Step 3.</li>
+      <li>Must provide <code>video_size</code> (total bytes), <code>chunk_size</code>, and <code>total_chunk_count</code> before calling init.</li>
+    </ul>
+    <pre><span class="cm">// Method B — FILE_UPLOAD (requires chunked PUTs in Step 3)</span>
+{
+  <span class="jk">"post_info"</span>: { <span class="cm">/* same as above */</span> },
+  <span class="jk">"source_info"</span>: {
+    <span class="jk">"source"</span>:            <span class="jv">"FILE_UPLOAD"</span>,
+    <span class="jk">"video_size"</span>:        <span class="jn">50000123</span>,   <span class="cm">// total file bytes</span>
+    <span class="jk">"chunk_size"</span>:        <span class="jn">10000000</span>,   <span class="cm">// bytes per chunk — min 5MB, max 64MB</span>
+    <span class="jk">"total_chunk_count"</span>: <span class="jn">5</span>           <span class="cm">// = Math.ceil(video_size / chunk_size)</span>
+  }
+}</pre>
+
+    <p class="sub"><strong>Init response — same for both methods:</strong></p>
+    <pre>{
+  <span class="jk">"data"</span>: {
+    <span class="jk">"publish_id"</span>:  <span class="jv">"v_pub_file~v2-1.123456789"</span>,  <span class="cm">// ← save this for Step 4 status polling</span>
+    <span class="jk">"upload_url"</span>:  <span class="jv">"https://open-upload.tiktokapis.com/video/?upload_id=67890&amp;upload_token=Xza123"</span>
+                                                    <span class="cm">// ← FILE_UPLOAD only. Valid for 1 hour.</span>
+  },
+  <span class="jk">"error"</span>: { <span class="jk">"code"</span>: <span class="jv">"ok"</span>, <span class="jk">"message"</span>: <span class="jv">""</span> }
+}</pre>
+    <div class="box warn"><span class="box-i">⚠</span><span>The <code>upload_url</code> is valid for <strong>1 hour only</strong>. Complete all chunk uploads within that window. If it expires, call /init/ again for a new URL and a new publish_id.</span></div>
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div class="sec"><span class="sec-tag">STEP 3</span><span class="sec-line"></span><span class="sec-lbl">Transfer video — chunked PUT or skipped (URL pull)</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum">3</div>
+    <div style="flex:1">
+      <div class="ctitle">Transfer video bytes to TikTok's upload server</div>
+      <div class="csub">PULL_FROM_URL users: TikTok fetches your Supabase URL automatically — skip to Step 4. FILE_UPLOAD users: send each chunk with a sequential PUT request.</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+
+    <div class="box pr-box"><span class="box-i">✓</span><span><strong>PULL_FROM_URL — skip this step entirely.</strong> TikTok fetches the file from your Supabase Storage URL. Go straight to Step 4 polling.</span></div>
+
+    <p class="sub" style="margin-top:16px"><strong>FILE_UPLOAD — chunk rules you must follow exactly:</strong></p>
+    <table class="tbl">
+      <thead><tr><th>Rule</th><th>Value / Requirement</th></tr></thead>
+      <tbody>
+        <tr><td>Min chunk size</td><td><strong>5 MB</strong> per chunk (except final chunk)</td></tr>
+        <tr><td>Max chunk size</td><td><strong>64 MB</strong> per chunk</td></tr>
+        <tr><td>Final chunk</td><td>Can be up to <strong>128 MB</strong> to absorb trailing bytes below 5 MB</td></tr>
+        <tr><td>Files under 5 MB</td><td>Upload as <strong>one whole chunk</strong> — set chunk_size = video_size, total_chunk_count = 1</td></tr>
+        <tr><td>Files over 64 MB</td><td><strong>Must</strong> be split into multiple chunks</td></tr>
+        <tr><td>Max chunks</td><td>Minimum 1, maximum <strong>1000</strong></td></tr>
+        <tr><td>Upload order</td><td><strong>Sequential only.</strong> Await each PUT before starting the next. Parallel uploads are NOT supported.</td></tr>
+        <tr><td>Same upload URL</td><td>Use the exact same <code>upload_url</code> from Step 2 for every chunk, including all query parameters.</td></tr>
+        <tr><td>Sandbox file limit</td><td><strong>128 MB max</strong> in sandbox. Production allows up to 4 GB.</td></tr>
+      </tbody>
+    </table>
+
+    <p class="sub"><strong>Chunk calculation example — 50,000,123 byte file with 10 MB chunks:</strong></p>
+    <pre>video_size        = <span class="jn">50000123</span>
+chunk_size        = <span class="jn">10000000</span>   <span class="cm">// 10 MB</span>
+total_chunk_count = <span class="jn">5</span>          <span class="cm">// Math.ceil(50000123 / 10000000)</span>
+
+<span class="cm">// Content-Range header for each chunk:</span>
+Chunk 1: bytes 0–9999999/50000123
+Chunk 2: bytes 10000000–19999999/50000123
+Chunk 3: bytes 20000000–29999999/50000123
+Chunk 4: bytes 30000000–39999999/50000123
+Chunk 5: bytes 40000000–50000122/50000123  <span class="cm">// final: includes trailing 123 bytes</span></pre>
+
+    <p class="sub"><strong>PUT request format for each chunk:</strong></p>
+    <pre>PUT <span class="url">https://open-upload.tiktokapis.com/video/?upload_id=67890&amp;upload_token=Xza123</span>
+Content-Type: video/mp4
+Content-Length: <span class="jv">{BYTE_SIZE_OF_THIS_CHUNK}</span>
+Content-Range: bytes <span class="jv">{FIRST_BYTE}</span>-<span class="jv">{LAST_BYTE}</span>/<span class="jv">{TOTAL_BYTE_LENGTH}</span>
+
+[BINARY DATA OF THIS CHUNK]</pre>
+
+    <p class="sub"><strong>Node.js chunk upload implementation:</strong></p>
+    <pre><span class="kw">async function</span> uploadInChunks(uploadUrl, fileBuffer) {
+  <span class="kw">const</span> CHUNK_SIZE  = <span class="jn">10 * 1024 * 1024</span>; <span class="cm">// 10 MB</span>
+  <span class="kw">const</span> totalSize   = fileBuffer.byteLength;
+  <span class="kw">const</span> totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="jn">0</span>; i &lt; totalChunks; i++) {
+    <span class="kw">const</span> start = i * CHUNK_SIZE;
+    <span class="kw">const</span> end   = Math.min(start + CHUNK_SIZE, totalSize);
+    <span class="kw">const</span> chunk = fileBuffer.slice(start, end);
+
+    <span class="kw">const</span> res = <span class="kw">await</span> fetch(uploadUrl, {
+      method: <span class="jv">'PUT'</span>,
+      headers: {
+        <span class="jk">'Content-Type'</span>:   <span class="jv">'video/mp4'</span>,
+        <span class="jk">'Content-Length'</span>: String(chunk.byteLength),
+        <span class="jk">'Content-Range'</span>:  <span class="jv">`bytes ${start}-${end - 1}/${totalSize}`</span>,
+      },
+      body: chunk,
+    });
+
+    <span class="kw">if</span> (!res.ok) {
+      <span class="kw">throw new</span> Error(<span class="jv">`Chunk ${i + 1}/${totalChunks} upload failed: HTTP ${res.status}`</span>);
+    }
+    <span class="cm">// Check response header Content-Range to confirm received bytes</span>
+  }
+}
+
+<span class="cm">// Usage:</span>
+<span class="cm">// const fileBuffer = await readFile('/path/to/video.mp4');</span>
+<span class="cm">// await uploadInChunks(uploadUrl, fileBuffer);</span></pre>
+    <div class="box warn"><span class="box-i">⚠</span><span><strong>For PostHive:</strong> Because videos are already uploaded to Supabase Storage with public URLs, use <code>PULL_FROM_URL</code> in Step 2. This entire Step 3 is skipped. Only implement FILE_UPLOAD if you need to support direct device-to-TikTok uploads without going through Supabase first.</span></div>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div class="sec"><span class="sec-tag">STEP 4</span><span class="sec-line"></span><span class="sec-lbl">Poll publish status — async wait for completion</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum">4</div>
+    <div style="flex:1">
+      <div class="ctitle">Poll /v2/post/publish/status/fetch/ using publish_id <span class="pill p-amber" style="font-size:10px">Async — use exponential backoff</span></div>
+      <div class="csub">TikTok processes and moderates content asynchronously. You are not given the post_id until complete. Poll with backoff — 30 requests/minute limit.</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+    <ul class="dl">
+      <li>After Step 2 (PULL_FROM_URL) or Step 3 (FILE_UPLOAD), TikTok begins downloading and processing the video asynchronously. There is no synchronous publish confirmation.</li>
+      <li>Use the <code>publish_id</code> from Step 2 to poll the status endpoint. <strong>Rate limit: 30 requests per minute per access_token.</strong></li>
+      <li><strong>Use exponential backoff.</strong> Start at 3 second intervals, increase by 1.5× each poll, cap at 30 seconds. Polling every second will hit rate limits fast.</li>
+      <li>For public posts, moderation usually completes within 1 minute but can take several hours in edge cases.</li>
+    </ul>
+
+    <p class="sub"><strong>All possible status values:</strong></p>
+    <div class="sg">
+      <div class="si"><div class="sn s-pr">PROCESSING_DOWNLOAD</div><div class="sd">TikTok is downloading from your Supabase URL (PULL_FROM_URL). Normal — keep polling.</div></div>
+      <div class="si"><div class="sn s-pr">PROCESSING_UPLOAD</div><div class="sd">File chunks received, TikTok is processing. Normal — keep polling.</div></div>
+      <div class="si"><div class="sn s-pr">AWAIT_POSTING</div><div class="sd">Upload done, awaiting content moderation. Normal for public posts — keep polling.</div></div>
+      <div class="si"><div class="sn s-ib">SEND_TO_USER_INBOX</div><div class="sd">Sent to creator's inbox as a draft. <strong>Final success state in sandbox.</strong> Never progresses further in sandbox.</div></div>
+      <div class="si"><div class="sn s-ok">PUBLISH_COMPLETE</div><div class="sd">🎉 Video is live on TikTok. <code>publicaly_available_post_id</code> is returned. <strong>Final success state in production.</strong></div></div>
+      <div class="si"><div class="sn s-fl">FAILED</div><div class="sd">Failed during processing or moderation. Check <code>fail_reason</code>. Do not retry same content automatically.</div></div>
+    </div>
+
+    <pre>POST <span class="url">https://open.tiktokapis.com/v2/post/publish/status/fetch/</span>
+Authorization: Bearer <span class="jv">act.YOUR_ACCESS_TOKEN</span>
+Content-Type: application/json; charset=UTF-8
+
+{ <span class="jk">"publish_id"</span>: <span class="jv">"v_pub_file~v2-1.123456789"</span> }</pre>
+
+    <pre><span class="cm">// Success response (production)</span>
+{
+  <span class="jk">"data"</span>: {
+    <span class="jk">"status"</span>:                       <span class="jv">"PUBLISH_COMPLETE"</span>,
+    <span class="jk">"publicaly_available_post_id"</span>:   [<span class="jv">"7123456789012345678"</span>],  <span class="cm">// note: TikTok typo in field name</span>
+    <span class="jk">"uploaded_bytes"</span>:               <span class="jn">50000123</span>
+  },
+  <span class="jk">"error"</span>: { <span class="jk">"code"</span>: <span class="jv">"ok"</span> }
+}
+
+<span class="cm">// Failure response</span>
+{
+  <span class="jk">"data"</span>: {
+    <span class="jk">"status"</span>:      <span class="jv">"FAILED"</span>,
+    <span class="jk">"fail_reason"</span>: <span class="jv">"video_duration_check_failed"</span>
+  }
+}</pre>
+
+    <pre><span class="kw">async function</span> pollStatus(accessToken, publishId, isSandbox, maxAttempts = <span class="jn">20</span>) {
+  <span class="kw">let</span> delay = <span class="jn">3000</span>;
+
+  <span class="kw">for</span> (<span class="kw">let</span> attempt = <span class="jn">0</span>; attempt &lt; maxAttempts; attempt++) {
+    <span class="kw">await new</span> Promise(r => setTimeout(r, delay));
+
+    <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="jv">'https://open.tiktokapis.com/v2/post/publish/status/fetch/'</span>, {
+      method: <span class="jv">'POST'</span>,
+      headers: {
+        <span class="jk">'Authorization'</span>: <span class="jv">`Bearer ${accessToken}`</span>,
+        <span class="jk">'Content-Type'</span>:  <span class="jv">'application/json; charset=UTF-8'</span>,
+      },
+      body: JSON.stringify({ publish_id: publishId }),
+    });
+
+    <span class="kw">const</span> d    = <span class="kw">await</span> res.json();
+    <span class="kw">const</span> status = d.data?.status;
+
+    <span class="kw">if</span> (status === <span class="jv">'PUBLISH_COMPLETE'</span>)
+      <span class="kw">return</span> { success: <span class="jn">true</span>,  postId: d.data.publicaly_available_post_id?.[<span class="jn">0</span>] };
+
+    <span class="kw">if</span> (status === <span class="jv">'SEND_TO_USER_INBOX'</span> && isSandbox)
+      <span class="kw">return</span> { success: <span class="jn">true</span>,  postId: <span class="jn">null</span>, note: <span class="jv">'Sandbox: sent to TikTok inbox as draft'</span> };
+
+    <span class="kw">if</span> (status === <span class="jv">'FAILED'</span>)
+      <span class="kw">return</span> { success: <span class="jn">false</span>, error: d.data?.fail_reason || <span class="jv">'Processing failed'</span> };
+
+    <span class="cm">// Still processing — back off</span>
+    delay = Math.min(delay * <span class="jn">1.5</span>, <span class="jn">30000</span>);
+  }
+
+  <span class="kw">return</span> { success: <span class="jn">false</span>, error: <span class="jv">'Polling timed out after max attempts'</span> };
+}</pre>
+    <div class="box sb-box"><span class="box-i">🧪</span><span><strong>Critical sandbox note:</strong> <code>PUBLISH_COMPLETE</code> is never reached in sandbox — public posting is disabled. Treat <code>SEND_TO_USER_INBOX</code> as your sandbox success state. If your polling logic only checks for <code>PUBLISH_COMPLETE</code>, it will time out on every sandbox test.</span></div>
+  </div>
+</div>
+
+<!-- FULL CODE -->
+<div class="sec"><span class="sec-tag">FULL CODE</span><span class="sec-line"></span><span class="sec-lbl">Complete tiktok.js — drop-in for PostHive</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum gn">✓</div>
+    <div style="flex:1">
+      <div class="ctitle">lib/platformPosters/tiktok.js — complete implementation</div>
+      <div class="csub">Combines all 4 steps. Uses PULL_FROM_URL. Handles sandbox and production automatically via is_sandbox flag. Exports postToTikTok(credentials, mediaUrl, caption).</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+    <pre><span class="cm">// lib/platformPosters/tiktok.js</span>
+<span class="cm">// PostHive — Complete TikTok poster (PULL_FROM_URL, sandbox + production)</span>
+
+<span class="kw">const</span> BASE = <span class="jv">'https://open.tiktokapis.com/v2'</span>;
+
+<span class="kw">async function</span> refreshIfNeeded(credentials) {
+  <span class="kw">if</span> (Date.now() &lt; credentials.token_expires_at - <span class="jn">300000</span>) <span class="kw">return</span> credentials;
+  <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="jv">`${BASE}/oauth/token/`</span>, {
+    method: <span class="jv">'POST'</span>,
+    headers: { <span class="jk">'Content-Type'</span>: <span class="jv">'application/x-www-form-urlencoded'</span> },
+    body: <span class="kw">new</span> URLSearchParams({
+      client_key: credentials.client_key, client_secret: credentials.client_secret,
+      grant_type: <span class="jv">'refresh_token'</span>, refresh_token: credentials.refresh_token,
+    }),
+  });
+  <span class="kw">const</span> d = <span class="kw">await</span> res.json();
+  <span class="kw">if</span> (!d.access_token) <span class="kw">throw new</span> Error(<span class="jv">'Token refresh failed'</span>);
+  <span class="kw">return</span> { ...credentials, access_token: d.access_token, refresh_token: d.refresh_token,
+             token_expires_at: Date.now() + d.expires_in * <span class="jn">1000</span> };
+}
+
+<span class="kw">async function</span> queryCreatorInfo(token) {
+  <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="jv">`${BASE}/post/publish/creator_info/query/`</span>, {
+    method: <span class="jv">'POST'</span>,
+    headers: { <span class="jk">'Authorization'</span>: <span class="jv">`Bearer ${token}`</span>, <span class="jk">'Content-Type'</span>: <span class="jv">'application/json; charset=UTF-8'</span> },
+  });
+  <span class="kw">const</span> d = <span class="kw">await</span> res.json();
+  <span class="kw">if</span> (d.error?.code !== <span class="jv">'ok'</span>) <span class="kw">throw new</span> Error(<span class="jv">'Creator info: '</span> + d.error?.message);
+  <span class="kw">return</span> d.data;
+}
+
+<span class="kw">async function</span> initUpload(token, mediaUrl, caption, creatorInfo, isSandbox) {
+  <span class="kw">const</span> endpoint = isSandbox
+    ? <span class="jv">`${BASE}/post/publish/inbox/video/init/`</span>
+    : <span class="jv">`${BASE}/post/publish/video/init/`</span>;
+
+  <span class="kw">const</span> body = { source_info: { source: <span class="jv">'PULL_FROM_URL'</span>, video_url: mediaUrl } };
+
+  <span class="kw">if</span> (!isSandbox) {
+    body.post_info = {
+      title:                    caption,
+      privacy_level:            creatorInfo.privacy_level_options?.[<span class="jn">0</span>] || <span class="jv">'SELF_ONLY'</span>,
+      disable_duet:             creatorInfo.duet_disabled    || <span class="jn">false</span>,
+      disable_comment:          creatorInfo.comment_disabled || <span class="jn">false</span>,
+      disable_stitch:           creatorInfo.stitch_disabled  || <span class="jn">false</span>,
+      video_cover_timestamp_ms: <span class="jn">1000</span>,
+    };
+  }
+
+  <span class="kw">const</span> res = <span class="kw">await</span> fetch(endpoint, {
+    method: <span class="jv">'POST'</span>,
+    headers: { <span class="jk">'Authorization'</span>: <span class="jv">`Bearer ${token}`</span>, <span class="jk">'Content-Type'</span>: <span class="jv">'application/json; charset=UTF-8'</span> },
+    body: JSON.stringify(body),
+  });
+  <span class="kw">const</span> d = <span class="kw">await</span> res.json();
+  <span class="kw">if</span> (d.error?.code !== <span class="jv">'ok'</span>) <span class="kw">throw new</span> Error(<span class="jv">'Init upload: '</span> + d.error?.message);
+  <span class="kw">return</span> d.data.publish_id; <span class="cm">// PULL_FROM_URL: no upload_url needed</span>
+}
+
+<span class="kw">async function</span> pollStatus(token, publishId, isSandbox) {
+  <span class="kw">let</span> delay = <span class="jn">3000</span>;
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="jn">0</span>; i &lt; <span class="jn">20</span>; i++) {
+    <span class="kw">await new</span> Promise(r => setTimeout(r, delay));
+    <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="jv">`${BASE}/post/publish/status/fetch/`</span>, {
+      method: <span class="jv">'POST'</span>,
+      headers: { <span class="jk">'Authorization'</span>: <span class="jv">`Bearer ${token}`</span>, <span class="jk">'Content-Type'</span>: <span class="jv">'application/json; charset=UTF-8'</span> },
+      body: JSON.stringify({ publish_id: publishId }),
+    });
+    <span class="kw">const</span> d = <span class="kw">await</span> res.json();
+    <span class="kw">const</span> s = d.data?.status;
+    <span class="kw">if</span> (s === <span class="jv">'PUBLISH_COMPLETE'</span>)
+      <span class="kw">return</span> { success: <span class="jn">true</span>,  postId: d.data.publicaly_available_post_id?.[<span class="jn">0</span>] };
+    <span class="kw">if</span> (s === <span class="jv">'SEND_TO_USER_INBOX'</span> && isSandbox)
+      <span class="kw">return</span> { success: <span class="jn">true</span>,  postId: <span class="jn">null</span>, note: <span class="jv">'Sandbox: draft sent to TikTok inbox'</span> };
+    <span class="kw">if</span> (s === <span class="jv">'FAILED'</span>)
+      <span class="kw">return</span> { success: <span class="jn">false</span>, error: d.data?.fail_reason || <span class="jv">'failed'</span> };
+    delay = Math.min(delay * <span class="jn">1.5</span>, <span class="jn">30000</span>);
+  }
+  <span class="kw">return</span> { success: <span class="jn">false</span>, error: <span class="jv">'Status polling timed out'</span> };
+}
+
+<span class="cm">/**
+ * Main export for PostHive
+ * @param {object} credentials  - from connected_platforms.credentials (jsonb)
+ * @param {string} mediaUrl     - public Supabase Storage URL of the video
+ * @param {string} caption      - post caption / title
+ * @returns {{ success: boolean, postId?: string, error?: string, note?: string }}
+ */</span>
+<span class="kw">export async function</span> postToTikTok(credentials, mediaUrl, caption) {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> creds       = <span class="kw">await</span> refreshIfNeeded(credentials);      <span class="cm">// Step 0</span>
+    <span class="kw">const</span> creatorInfo = <span class="kw">await</span> queryCreatorInfo(creds.access_token); <span class="cm">// Step 1</span>
+    <span class="kw">const</span> publishId   = <span class="kw">await</span> initUpload(                          <span class="cm">// Step 2</span>
+      creds.access_token, mediaUrl, caption, creatorInfo, creds.is_sandbox
+    );
+    <span class="cm">// Step 3 skipped — PULL_FROM_URL means TikTok fetches from Supabase URL</span>
+    <span class="kw">return</span> <span class="kw">await</span> pollStatus(creds.access_token, publishId, creds.is_sandbox); <span class="cm">// Step 4</span>
+  } <span class="kw">catch</span> (err) {
+    <span class="kw">return</span> { success: <span class="jn">false</span>, error: err.message };
+  }
+}</pre>
+  </div>
+</div>
+
+<!-- ERRORS -->
+<div class="sec"><span class="sec-tag">ERRORS</span><span class="sec-line"></span><span class="sec-lbl">Common errors, causes, and fixes</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum rd">!</div>
+    <div style="flex:1">
+      <div class="ctitle">Every common TikTok upload error and how to handle it</div>
+      <div class="csub">TikTok errors are often silent — the init call succeeds but publish fails. Always check fail_reason in the Step 4 poll response.</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+    <table class="tbl">
+      <thead><tr><th>Error / fail_reason</th><th>Cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">401 / invalid_token</td><td>access_token expired (24hr TTL)</td><td>Always run Step 0 refresh check before the pipeline</td></tr>
+        <tr><td class="mn">url_ownership_unverified</td><td>PULL_FROM_URL domain not in TikTok URL properties</td><td>Add your Supabase storage domain to URL properties in Developer Portal</td></tr>
+        <tr><td class="mn">video_duration_check_failed</td><td>Video longer than creator's max allowed duration</td><td>Validate against <code>max_video_post_duration_sec</code> from Step 1 creator info</td></tr>
+        <tr><td class="mn">upload_url_expired</td><td>More than 1 hour since /init/ call</td><td>Call /init/ again for a fresh URL + new publish_id</td></tr>
+        <tr><td class="mn">content_policy_violation</td><td>Video failed TikTok automated content moderation</td><td>Cannot bypass. Inform user. Do not retry same content automatically.</td></tr>
+        <tr><td class="mn">chunk_upload_out_of_order</td><td>Chunks sent in wrong order or in parallel</td><td>Upload strictly sequential. Await each PUT before sending next chunk.</td></tr>
+        <tr><td class="mn">PUBLISH_COMPLETE never reached (sandbox)</td><td>Expected — public posting is disabled in sandbox</td><td>Treat <code>SEND_TO_USER_INBOX</code> as success in your sandbox polling logic</td></tr>
+        <tr><td class="mn">rate_limit_exceeded</td><td>Polling too fast (30/min limit for status, 6/min for init)</td><td>Use exponential backoff in Step 4. Never poll more than once every 3 seconds.</td></tr>
+        <tr><td class="mn">post_info block rejected (sandbox)</td><td>Inbox endpoint does not support post_info</td><td>Omit <code>post_info</code> block entirely when <code>is_sandbox</code> is true</td></tr>
+        <tr><td class="mn">Caption/cover can't be changed after publish</td><td>TikTok API does not support post edits</td><td>Show a preview + confirmation step in PostHive before posting. Delete and re-upload to fix.</td></tr>
+      </tbody>
+    </table>
+    <div class="box dngr"><span class="box-i">✕</span><span><strong>Once published, a TikTok video cannot be edited via API.</strong> You cannot change the caption, privacy setting, or cover image. If anything is wrong, the only option is to delete the post and re-upload. This makes your PostHive preview screen before "Post Now" critical.</span></div>
+  </div>
+</div>
+
+<!-- LIMITS -->
+<div class="sec"><span class="sec-tag">LIMITS</span><span class="sec-line"></span><span class="sec-lbl">File requirements, limits, and rate limits</span><span class="sec-line"></span></div>
+
+<div class="card open">
+  <div class="card-hd" onclick="tog(this)">
+    <div class="cnum bl">≡</div>
+    <div style="flex:1">
+      <div class="ctitle">Video requirements and platform limits — sandbox vs production</div>
+      <div class="csub">Validate these in PostHive's upload UI before the user clicks "Post Now".</div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="card-body">
+    <div class="cmp-grid">
+      <div class="cmp-card">
+        <div class="cmp-hd sb">🧪 Sandbox limits</div>
+        <div class="cmp-body">
+          <div class="cmp-item">Max file size: <strong>128 MB</strong></div>
+          <div class="cmp-item">Supported formats: MP4, MOV, WebM</div>
+          <div class="cmp-item">Minimum resolution: 360p</div>
+          <div class="cmp-item">Only verified target users can authenticate</div>
+          <div class="cmp-item">No public posting — inbox drafts only</div>
+          <div class="cmp-item">Final status: <code>SEND_TO_USER_INBOX</code></div>
+          <div class="cmp-item">post_info block not supported in inbox init</div>
+          <div class="cmp-item">Privacy: only SELF_ONLY returned by creator info</div>
+          <div class="cmp-item">Init rate limit: 6 requests/min</div>
+          <div class="cmp-item">Status poll limit: 30 requests/min</div>
+        </div>
+      </div>
+      <div class="cmp-card">
+        <div class="cmp-hd pr">🚀 Production limits</div>
+        <div class="cmp-body">
+          <div class="cmp-item">Max file size: <strong>4 GB</strong></div>
+          <div class="cmp-item">Recommended: MP4 H.264, AAC audio</div>
+          <div class="cmp-item">Minimum resolution: 720p recommended</div>
+          <div class="cmp-item">Max duration: up to 10 min (per creator)</div>
+          <div class="cmp-item">upload_url valid for <strong>1 hour</strong></div>
+          <div class="cmp-item">Final status: <code>PUBLISH_COMPLETE</code></div>
+          <div class="cmp-item">Moderation: usually &lt;1 min, up to hours</div>
+          <div class="cmp-item">No native scheduling — build your own queue</div>
+          <div class="cmp-item">No caption/cover edits after publish</div>
+          <div class="cmp-item">Requires App Review approval first</div>
+        </div>
+      </div>
+    </div>
+    <div class="box info" style="margin-top:12px"><span class="box-i">ℹ</span><span><strong>No native scheduling in TikTok API.</strong> There is no <code>scheduled_publish_time</code> parameter. To offer scheduling in PostHive, implement a job queue (e.g. Supabase cron, pg_cron, or a background worker) that calls <code>postToTikTok()</code> at the desired time.</span></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="margin-top:44px;padding:18px 20px;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);">
+  <p style="font-family:var(--mono);font-size:11px;color:var(--tx3);line-height:1.85;">
+    <span style="color:var(--cyan)">SOURCES</span> — All endpoints, schemas, chunk rules, status codes, and rate limits from official TikTok for Developers documentation:
+    developers.tiktok.com/doc/content-posting-api-get-started ·
+    /doc/content-posting-api-reference-direct-post ·
+    /doc/content-posting-api-reference-upload-video ·
+    /doc/content-posting-api-media-transfer-guide ·
+    /doc/content-posting-api-reference-get-video-status ·
+    Verified May 2026
+  </p>
+</div>
+
+</div>
+
+<script>
+function tog(el) { el.closest('.card').classList.toggle('open'); }
+document.querySelectorAll('.card').forEach(c => c.classList.add('open'));
+</script>
+</body>
+</html>
