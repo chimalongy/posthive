@@ -59,36 +59,36 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
   const mediaType = isVideo ? 'video/mp4' : 'image/jpeg';
   const mediaCategory = isVideo ? 'tweet_video' : 'tweet_image';
 
-  console.log(`Starting X media upload v2 (${mediaCategory}, ${totalBytes} bytes)...`);
+  console.log(`Starting X media upload v1.1 (${mediaCategory}, ${totalBytes} bytes)...`);
 
-  const uploadUrl = 'https://api.x.com/2/media/upload';
+  const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
 
   // 1. INIT
-  const initForm = new FormData();
-  initForm.append('command', 'INIT');
-  initForm.append('media_type', mediaType);
-  initForm.append('total_bytes', String(totalBytes));
-  initForm.append('media_category', mediaCategory);
+  const initParams = new URLSearchParams({
+    command: 'INIT',
+    media_type: mediaType,
+    total_bytes: String(totalBytes),
+    media_category: mediaCategory,
+  });
 
-  const initRes = await fetch(uploadUrl, {
+  const initRes = await fetch(`${uploadUrl}?${initParams.toString()}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-    body: initForm,
   });
 
   const initData = await initRes.json();
   console.log('X INIT response:', initData);
-  if (!initRes.ok || !initData.data?.id) {
-    throw new Error(initData.detail || initData.errors?.[0]?.message || 'X INIT failed');
+  if (!initRes.ok || !initData.media_id_string) {
+    throw new Error(initData.error || initData.errors?.[0]?.message || 'X INIT failed');
   }
 
-  const mediaId = initData.data.id;
+  const mediaId = initData.media_id_string;
   console.log(`X media upload initialized. Media ID: ${mediaId}`);
 
   // 2. APPEND
-  const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks (must be <= 5MB)
+  const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
   const totalChunks = Math.ceil(totalBytes / CHUNK_SIZE);
 
   for (let i = 0; i < totalChunks; i++) {
@@ -102,7 +102,7 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
     appendForm.append('command', 'APPEND');
     appendForm.append('media_id', mediaId);
     appendForm.append('segment_index', String(i));
-    appendForm.append('media', new Blob([chunk]));
+    appendForm.append('media', new Blob([chunk], { type: mediaType }));
 
     const appendRes = await fetch(uploadUrl, {
       method: 'POST',
@@ -114,36 +114,39 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
 
     if (!appendRes.ok) {
       const err = await appendRes.text();
+      console.error('X APPEND error detail:', err);
       throw new Error(`X APPEND failed at chunk ${i}: ${err}`);
     }
   }
 
   // 3. FINALIZE
   console.log('Finalizing X media upload...');
-  const finalizeForm = new FormData();
-  finalizeForm.append('command', 'FINALIZE');
-  finalizeForm.append('media_id', mediaId);
+  const finalizeParams = new URLSearchParams({
+    command: 'FINALIZE',
+    media_id: mediaId,
+  });
 
-  const finalizeRes = await fetch(uploadUrl, {
+  const finalizeRes = await fetch(`${uploadUrl}?${finalizeParams.toString()}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-    body: finalizeForm,
   });
 
   const finalizeData = await finalizeRes.json();
   console.log('X FINALIZE response:', finalizeData);
   if (!finalizeRes.ok) {
-    throw new Error(finalizeData.detail || finalizeData.errors?.[0]?.message || 'X FINALIZE failed');
+    throw new Error(finalizeData.error || finalizeData.errors?.[0]?.message || 'X FINALIZE failed');
   }
 
   // 4. STATUS (Polling for video)
-  if (isVideo && finalizeData.data?.processing_info) {
+  if (isVideo && (finalizeData.processing_info || finalizeData.data?.processing_info)) {
     console.log('Waiting for X to process video...');
-    let state = finalizeData.data.processing_info.state;
+    const info = finalizeData.processing_info || finalizeData.data.processing_info;
+    let state = info.state;
+
     while (state === 'pending' || state === 'in_progress') {
-      const checkAfter = finalizeData.data.processing_info.check_after_secs || 5;
+      const checkAfter = info.check_after_secs || 5;
       await new Promise(r => setTimeout(r, checkAfter * 1000));
 
       const statusRes = await fetch(`${uploadUrl}?command=STATUS&media_id=${mediaId}`, {
@@ -153,10 +156,13 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
         },
       });
       const statusData = await statusRes.json();
+      console.log('X STATUS response:', statusData);
 
-      state = statusData.data?.processing_info?.state;
+      const nextInfo = statusData.processing_info || statusData.data?.processing_info;
+      state = nextInfo?.state;
+
       if (state === 'failed') {
-        throw new Error(statusData.data.processing_info.error?.message || 'X video processing failed');
+        throw new Error(nextInfo.error?.message || 'X video processing failed');
       }
     }
   }
