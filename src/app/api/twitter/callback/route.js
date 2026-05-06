@@ -17,11 +17,8 @@ export async function GET(request) {
   }
 
   try {
-    console.log('Twitter Callback - Raw stateParam:', stateParam);
-    const decodedState = decodeURIComponent(stateParam);
-    console.log('Twitter Callback - Decoded stateParam:', decodedState);
-    
-    const state = JSON.parse(decodedState);
+    // Base64 decode the state parameter
+    const state = JSON.parse(Buffer.from(stateParam, 'base64').toString('utf-8'));
     const { userId, clientId, codeVerifier } = state;
 
     if (!userId || !clientId || !codeVerifier) {
@@ -48,22 +45,23 @@ export async function GET(request) {
     const redirectUri = `${appUrl.replace(/\/$/, '')}/api/twitter/callback`;
 
     // Exchange code for tokens
+    // We send client_id and client_secret in the body to safely handle colons in client IDs
     const tokenRes = await fetch('https://api.x.com/2/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
         redirect_uri: redirectUri,
         code_verifier: codeVerifier,
+        client_id: clientId,
+        client_secret: clientSecret,
       }),
     });
 
     const tokenData = await tokenRes.json();
-    console.log('Twitter Token Data:', tokenData);
 
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error('Twitter Token Exchange Failed:', tokenData);

@@ -50,11 +50,11 @@ export async function GET(request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const callbackUrl = `${appUrl.replace(/\/$/, '')}/api/twitter/callback`;
 
-  const state = JSON.stringify({
+  const state = Buffer.from(JSON.stringify({
     userId: user.id,
     clientId,
     codeVerifier
-  });
+  })).toString('base64');
 
   const scope = [
     'tweet.read',
