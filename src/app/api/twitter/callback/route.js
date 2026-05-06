@@ -45,19 +45,17 @@ export async function GET(request) {
     const redirectUri = `${appUrl.replace(/\/$/, '')}/api/twitter/callback`;
 
     // Exchange code for tokens
-    // We send client_id and client_secret in the body to safely handle colons in client IDs
     const tokenRes = await fetch('https://api.x.com/2/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
         redirect_uri: redirectUri,
         code_verifier: codeVerifier,
-        client_id: clientId,
-        client_secret: clientSecret,
       }),
     });
 
