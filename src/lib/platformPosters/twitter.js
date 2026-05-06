@@ -1,22 +1,17 @@
-// PostHive — X (Twitter) poster using OAuth 2.0 and API v2 media upload
-// v1.1 media upload was deprecated June 2025. This uses the new v2 endpoints.
+// PostHive — X (Twitter) poster using twitter-api-v2 library
+// Uses OAuth 2.0 User Context (Authorization Code + PKCE)
+
+import { TwitterApi } from 'twitter-api-v2';
 
 /**
- * Safe JSON parsing helper
+ * Build an authenticated TwitterApi client from stored credentials
  */
-async function safeJson(res) {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    console.error('Failed to parse JSON:', text);
-    return { error: 'Invalid JSON response', raw: text };
-  }
+function getClient(credentials) {
+  return new TwitterApi(credentials.accessToken);
 }
 
 /**
- * Refresh OAuth 2.0 access token if expired
+ * Refresh OAuth 2.0 access token if expired or close to expiry
  */
 async function refreshIfNeeded(credentials) {
   const { clientId, clientSecret, refreshToken, token_expires_at } = credentials;
@@ -30,161 +25,46 @@ async function refreshIfNeeded(credentials) {
     return { credentials, updated: false };
   }
 
-  console.log('X access token expired or missing, refreshing...');
+  console.log('X: access token expired or expiring soon, refreshing...');
   try {
-    const res = await fetch('https://api.x.com/2/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-      }),
+    // Use the library's built-in OAuth2 refresh
+    const appClient = new TwitterApi({
+      clientId,
+      clientSecret,
     });
 
-    const d = await safeJson(res);
-    if (!res.ok || !d.access_token) {
-      console.error('X token refresh failed response:', d);
-      throw new Error('X token refresh failed: ' + (d.error_description || d.error || 'Unknown error'));
-    }
+    const { accessToken, refreshToken: newRefreshToken, expiresIn } = await appClient.refreshOAuth2Token(refreshToken);
 
     const updatedCredentials = {
       ...credentials,
-      accessToken: d.access_token,
-      refreshToken: d.refresh_token || refreshToken,
-      token_expires_at: Date.now() + (d.expires_in * 1000),
+      accessToken,
+      refreshToken: newRefreshToken || refreshToken,
+      token_expires_at: Date.now() + (expiresIn * 1000),
     };
 
+    console.log('X: token refreshed successfully.');
     return { credentials: updatedCredentials, updated: true };
   } catch (err) {
-    console.error('X Token Refresh Exception:', err);
-    throw err;
+    console.error('X Token Refresh Error:', err.message || err);
+    throw new Error('X token refresh failed: ' + (err.message || 'Unknown error'));
   }
 }
 
 /**
- * X API v2 Chunked Media Upload using OAuth 2.0 User Context Bearer token
- *
- * Endpoints (v2 — no legacy 'command' parameter):
- *   INIT:     POST https://api.twitter.com/2/media/upload/initialize
- *   APPEND:   POST https://api.twitter.com/2/media/upload/{id}/append
- *   FINALIZE: POST https://api.twitter.com/2/media/upload/{id}/finalize
- *   STATUS:   GET  https://api.twitter.com/2/media/upload/{id}
+ * Upload media using twitter-api-v2 (handles chunking + v1/v2 routing automatically)
  */
-async function uploadMedia(credentials, fileBuffer, isVideo, mimeType) {
-  const { accessToken } = credentials;
-  const totalBytes = fileBuffer.byteLength;
-  const mediaType = mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
-  const mediaCategory = isVideo ? 'TweetVideo' : 'TweetImage';
+async function uploadMedia(credentials, fileBuffer, mimeType, isVideo) {
+  const client = getClient(credentials);
 
-  console.log(`Starting X media upload v2 (${mediaCategory}, ${totalBytes} bytes, ${mediaType})...`);
+  console.log(`X: uploading media (${mimeType}, ${fileBuffer.byteLength} bytes)...`);
 
-  // 1. INITIALIZE
-  const initRes = await fetch('https://api.twitter.com/2/media/upload/initialize', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      media_type: mediaType,
-      media_category: mediaCategory,
-      total_bytes: totalBytes,
-    }),
+  // twitter-api-v2 v1.uploadMedia handles INIT/APPEND/FINALIZE internally
+  const mediaId = await client.v1.uploadMedia(Buffer.from(fileBuffer), {
+    mimeType,
+    target: isVideo ? 'tweet' : 'tweet',
   });
 
-  const initData = await safeJson(initRes);
-  console.log('X INIT response:', initData);
-
-  if (!initRes.ok || !initData.id) {
-    console.error('X INIT failed detail:', JSON.stringify(initData));
-    const errMsg = initData.detail || initData.errors?.[0]?.message || initData.error || 'X INIT failed';
-    throw new Error(errMsg);
-  }
-
-  const mediaId = initData.id;
-  console.log(`X media upload initialized. Media ID: ${mediaId}`);
-
-  // 2. APPEND (chunked binary upload)
-  const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
-  const totalChunks = Math.ceil(totalBytes / CHUNK_SIZE);
-
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, totalBytes);
-    const chunk = fileBuffer.slice(start, end);
-
-    console.log(`Uploading X media chunk ${i + 1}/${totalChunks} (bytes ${start}–${end})...`);
-
-    const appendRes = await fetch(`https://api.twitter.com/2/media/upload/${mediaId}/append`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/octet-stream',
-        'X-Segment-Index': String(i),
-      },
-      body: chunk,
-    });
-
-    if (!appendRes.ok) {
-      const err = await appendRes.text();
-      console.error('X APPEND error detail:', err);
-      throw new Error(`X APPEND failed at chunk ${i}: ${err}`);
-    }
-    console.log(`Chunk ${i + 1}/${totalChunks} uploaded successfully.`);
-  }
-
-  // 3. FINALIZE
-  console.log('Finalizing X media upload...');
-  const finalizeRes = await fetch(`https://api.twitter.com/2/media/upload/${mediaId}/finalize`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-    },
-  });
-
-  const finalizeData = await safeJson(finalizeRes);
-  console.log('X FINALIZE response:', finalizeData);
-
-  if (!finalizeRes.ok) {
-    const errMsg = finalizeData.detail || finalizeData.errors?.[0]?.message || finalizeData.error || 'X FINALIZE failed';
-    throw new Error(errMsg);
-  }
-
-  // 4. STATUS POLLING (for videos that need processing)
-  if (isVideo) {
-    const processingInfo = finalizeData.processing_info;
-    if (processingInfo && (processingInfo.state === 'pending' || processingInfo.state === 'in_progress')) {
-      console.log('Waiting for X to process video...');
-      let state = processingInfo.state;
-      let checkAfter = processingInfo.check_after_secs || 5;
-
-      while (state === 'pending' || state === 'in_progress') {
-        await new Promise(r => setTimeout(r, checkAfter * 1000));
-
-        const statusRes = await fetch(`https://api.twitter.com/2/media/upload/${mediaId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        });
-        const statusData = await safeJson(statusRes);
-        console.log('X STATUS response:', statusData);
-
-        const info = statusData.processing_info;
-        state = info?.state;
-        checkAfter = info?.check_after_secs || 5;
-
-        if (state === 'failed') {
-          throw new Error(info?.error?.message || 'X video processing failed');
-        }
-      }
-      console.log('X video processing complete.');
-    }
-  }
-
+  console.log(`X: media upload complete. Media ID: ${mediaId}`);
   return mediaId;
 }
 
@@ -193,7 +73,10 @@ async function uploadMedia(credentials, fileBuffer, isVideo, mimeType) {
  */
 export async function postToTwitter(credentials, mediaUrl, caption, isVideo, mimeType) {
   if (!credentials.clientId || !credentials.clientSecret || !credentials.accessToken) {
-    return { success: false, error: 'Missing X OAuth 2.0 credentials. Please reconnect with Client ID and Secret.' };
+    return {
+      success: false,
+      error: 'Missing X OAuth 2.0 credentials. Please reconnect your Twitter/X account.',
+    };
   }
 
   let updatedTokens = null;
@@ -210,48 +93,48 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo, mim
       };
     }
 
+    const client = getClient(currentCreds);
     let mediaId = null;
 
-    // 1. Fetch and Upload Media
+    // Step 1: Fetch and upload media if provided
     if (mediaUrl) {
-      console.log('Fetching media from:', mediaUrl);
+      console.log('X: fetching media from storage:', mediaUrl);
       const mediaRes = await fetch(mediaUrl);
       if (!mediaRes.ok) {
-        console.error('Failed to fetch media:', mediaRes.status, mediaRes.statusText);
-        throw new Error('Failed to fetch media from storage');
+        throw new Error(`Failed to fetch media from storage (HTTP ${mediaRes.status})`);
       }
       const mediaBuffer = await mediaRes.arrayBuffer();
-      console.log('Media fetched, size:', mediaBuffer.byteLength);
-      mediaId = await uploadMedia(currentCreds, mediaBuffer, isVideo, mimeType);
+      console.log(`X: media fetched, ${mediaBuffer.byteLength} bytes`);
+
+      // Determine MIME type
+      const resolvedMimeType = mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
+      mediaId = await uploadMedia(currentCreds, mediaBuffer, resolvedMimeType, isVideo);
     }
 
-    // 2. Post Tweet (API v2 with OAuth 2.0 Bearer)
-    const tweetUrl = 'https://api.twitter.com/2/tweets';
-    const tweetBody = { text: caption };
+    // Step 2: Post the tweet using v2
+    console.log('X: posting tweet...');
+    const tweetPayload = { text: caption || '' };
     if (mediaId) {
-      tweetBody.media = { media_ids: [mediaId] };
+      tweetPayload.media = { media_ids: [mediaId] };
     }
 
-    const tweetRes = await fetch(tweetUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${currentCreds.accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(tweetBody),
-    });
+    const tweetResult = await client.v2.tweet(tweetPayload);
+    console.log('X: tweet posted successfully. Tweet ID:', tweetResult.data?.id);
 
-    const tweetData = await safeJson(tweetRes);
-    if (!tweetRes.ok || tweetData.errors) {
-      return {
-        success: false,
-        error: tweetData.detail || tweetData.errors?.[0]?.message || tweetData.title || 'X post failed',
-      };
-    }
-
-    return { success: true, postId: tweetData.data?.id, updatedTokens };
+    return {
+      success: true,
+      postId: tweetResult.data?.id,
+      updatedTokens,
+    };
   } catch (err) {
-    console.error('X Poster Error:', err);
-    return { success: false, error: err.message || 'X API error', updatedTokens };
+    // Extract detailed error info from twitter-api-v2 errors
+    const apiError = err?.data?.errors?.[0]?.message
+      || err?.data?.detail
+      || err?.data?.error_description
+      || err?.message
+      || 'X API error';
+
+    console.error('X Poster Error:', apiError, err?.data || '');
+    return { success: false, error: apiError, updatedTokens };
   }
 }
