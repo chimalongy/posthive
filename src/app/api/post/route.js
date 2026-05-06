@@ -3,92 +3,112 @@ import { postToInstagram } from '@/lib/platformPosters/instagram';
 import { postToTwitter } from '@/lib/platformPosters/twitter';
 import { postToYouTube } from '@/lib/platformPosters/youtube';
 import { postToTikTok } from '@/lib/platformPosters/tiktok';
-import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabaseServer';
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const { platforms, content, caption, mediaUrl, isVideo, mediaType } = body;
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    const body = await req.json();
+    const { platforms: selectedPlatformNames, caption, media_id } = body;
+
+    if (!selectedPlatformNames || !Array.isArray(selectedPlatformNames) || selectedPlatformNames.length === 0) {
       return new Response(JSON.stringify({ error: 'No platforms selected' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    if (!content && !mediaUrl && !caption) {
-      return new Response(JSON.stringify({ error: 'No content provided' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    // 1. Fetch Media details
+    let mediaUrl = null;
+    let isVideo = false;
+    let mediaType = 'image/jpeg';
+
+    if (media_id) {
+      const { data: mediaData, error: mediaError } = await supabase
+        .from('media_uploads')
+        .select('*')
+        .eq('id', media_id)
+        .single();
+      
+      if (mediaError || !mediaData) {
+        return new Response(JSON.stringify({ error: 'Media not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+      }
+      
+      mediaUrl = mediaData.public_url;
+      mediaType = mediaData.file_type;
+      isVideo = mediaType?.startsWith('video/');
     }
 
-    const results = {};
+    // 2. Fetch User's Connected Platforms
+    const { data: connectedPlatforms, error: platformsError } = await supabase
+      .from('connected_platforms')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+    
+    if (platformsError) {
+      return new Response(JSON.stringify({ error: 'Failed to fetch connected platforms' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
 
-    for (const platform of platforms) {
-      const creds = platform.credentials;
-      const platformName = platform.platform;
+    const results = [];
 
-      if (!creds) {
-        results[platformName] = { success: false, error: 'No credentials found for this platform.' };
+    // 3. Process each selected platform
+    for (const platformName of selectedPlatformNames) {
+      const platformRecord = connectedPlatforms.find(p => p.platform === platformName);
+
+      if (!platformRecord) {
+        results.push({ platform: platformName, success: false, error: 'Platform not connected or inactive.' });
         continue;
       }
 
+      const creds = platformRecord.credentials;
       let result;
 
       try {
         switch (platformName) {
           case 'facebook':
-            result = await postToFacebook(creds, mediaUrl, caption || content, isVideo, mediaType);
+            result = await postToFacebook(creds, mediaUrl, caption, isVideo, mediaType);
             break;
           case 'instagram':
-            result = await postToInstagram(creds, mediaUrl, caption || content, isVideo, mediaType);
+            result = await postToInstagram(creds, mediaUrl, caption, isVideo, mediaType);
             break;
           case 'twitter':
-            result = await postToTwitter(creds, mediaUrl, caption || content, isVideo, mediaType);
+            result = await postToTwitter(creds, mediaUrl, caption, isVideo);
             break;
           case 'youtube':
-            result = await postToYouTube(creds, mediaUrl, caption || content, mediaType);
+            result = await postToYouTube(creds, mediaUrl, caption, mediaType);
             break;
           case 'tiktok':
-            result = await postToTikTok(creds, mediaUrl, caption || content, mediaType);
+            result = await postToTikTok(creds, mediaUrl, caption, mediaType);
             break;
           default:
-            results[platformName] = { success: false, error: `Unsupported platform: ${platformName}` };
+            results.push({ platform: platformName, success: false, error: `Unsupported platform: ${platformName}` });
             continue;
         }
 
-        results[platformName] = result;
+        // Attach platform name to result for front-end
+        results.push({ ...result, platform: platformName });
+
+        // Update tokens if they were refreshed
+        if (result.updatedTokens) {
+          const updated = { ...creds, ...result.updatedTokens };
+          await supabase
+            .from('connected_platforms')
+            .update({ credentials: updated })
+            .eq('id', platformRecord.id);
+        }
       } catch (err) {
         console.error(`Posting error for ${platformName}:`, err);
-        results[platformName] = { success: false, error: err.message || 'Unexpected error occurred while posting.' };
+        results.push({ platform: platformName, success: false, error: err.message || 'Unexpected error occurred.' });
       }
-    }
-
-    // Persist any refreshed tokens back to Supabase
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (serviceRoleKey) {
-        const supabase = createClient(supabaseUrl, serviceRoleKey);
-        for (const platform of platforms) {
-          const platformName = platform.platform;
-          const result = results[platformName];
-          if (result?.updatedTokens && platform.id) {
-            const { data: existing } = await supabase
-              .from('connected_platforms')
-              .select('credentials')
-              .eq('id', platform.id)
-              .single();
-            if (existing) {
-              const updated = { ...existing.credentials, ...result.updatedTokens };
-              await supabase.from('connected_platforms').update({ credentials: updated }).eq('id', platform.id);
-            }
-          }
-        }
-      }
-    } catch (persistErr) {
-      console.error('Token persist error:', persistErr);
     }
 
     return new Response(JSON.stringify({ results }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('Post API Error:', err);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
