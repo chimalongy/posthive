@@ -2,6 +2,20 @@
 // v1.1 media upload was deprecated June 2025. This uses the new v2 endpoints.
 
 /**
+ * Safe JSON parsing helper
+ */
+async function safeJson(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error('Failed to parse JSON:', text);
+    return { error: 'Invalid JSON response', raw: text };
+  }
+}
+
+/**
  * Refresh OAuth 2.0 access token if expired
  */
 async function refreshIfNeeded(credentials) {
@@ -30,7 +44,7 @@ async function refreshIfNeeded(credentials) {
       }),
     });
 
-    const d = await res.json();
+    const d = await safeJson(res);
     if (!res.ok || !d.access_token) {
       console.error('X token refresh failed response:', d);
       throw new Error('X token refresh failed: ' + (d.error_description || d.error || 'Unknown error'));
@@ -78,7 +92,7 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
     },
   });
 
-  const initData = await initRes.json();
+  const initData = await safeJson(initRes);
   console.log('X INIT response:', initData);
   if (!initRes.ok || !initData.media_id_string) {
     throw new Error(initData.error || initData.errors?.[0]?.message || 'X INIT failed');
@@ -133,7 +147,7 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
     },
   });
 
-  const finalizeData = await finalizeRes.json();
+  const finalizeData = await safeJson(finalizeRes);
   console.log('X FINALIZE response:', finalizeData);
   if (!finalizeRes.ok) {
     throw new Error(finalizeData.error || finalizeData.errors?.[0]?.message || 'X FINALIZE failed');
@@ -155,7 +169,7 @@ async function uploadMedia(credentials, fileBuffer, isVideo) {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-      const statusData = await statusRes.json();
+      const statusData = await safeJson(statusRes);
       console.log('X STATUS response:', statusData);
 
       const nextInfo = statusData.processing_info || statusData.data?.processing_info;
@@ -223,7 +237,7 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo) {
       body: JSON.stringify(tweetBody),
     });
 
-    const tweetData = await tweetRes.json();
+    const tweetData = await safeJson(tweetRes);
     if (!tweetRes.ok || tweetData.errors) {
       return {
         success: false,
