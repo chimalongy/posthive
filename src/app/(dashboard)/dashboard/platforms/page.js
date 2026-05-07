@@ -118,7 +118,7 @@ function PlatformsContent() {
     } else if (platform === 'tiktok') {
       redirectUrl = `/api/tiktok/authorize?client_key=${encodeURIComponent(record.credentials.clientKey)}&is_sandbox=${record.credentials.isSandbox}`;
     } else if (platform === 'twitter') {
-      redirectUrl = `/api/twitter/authorize?clientId=${encodeURIComponent(record.credentials.clientId)}`;
+      redirectUrl = `/api/twitter/authorize?apiKey=${encodeURIComponent(record.credentials.apiKey)}`;
     }
 
     if (redirectUrl) {

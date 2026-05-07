@@ -86,7 +86,7 @@ export async function POST(request) {
   }
 
   if (platform === 'twitter') {
-    const redirectUrl = `/api/twitter/authorize?clientId=${encodeURIComponent(trimmedCredentials.clientId)}`;
+    const redirectUrl = `/api/twitter/authorize?apiKey=${encodeURIComponent(trimmedCredentials.apiKey)}`;
     return Response.json({ success: true, redirectUrl });
   }
 
