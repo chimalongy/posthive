@@ -206,7 +206,8 @@ async function videoChunkUpload(credentials, videoBuffer) {
       method:         'POST',
       url:            uploadUrl,
       oauthParams:    appendOAuth,
-      bodyParams:     appendBodyParams, // only the non-binary params in the signature
+      // IMPORTANT: multipart/form-data body params must NOT be included in the
+      // OAuth 1.0a signature. Only the OAuth header params are signed here.
       consumerSecret: apiKeySecret,
       tokenSecret:    accessTokenSecret,
     });
@@ -343,33 +344,33 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo = fa
       }
     }
 
-    // ── 2. Post the tweet via API v2 ───────────────────────────────────────
-    // Important: for a JSON POST body, NO body params go into the OAuth
-    // signature — only the base OAuth params are signed (same as SVP).
-    const tweetUrl = 'https://api.twitter.com/2/tweets';
+    // ── 2. Post the tweet via API v1.1 ────────────────────────────────────
+    // IMPORTANT: v2 /2/tweets requires the app to be attached to a Project.
+    // The v1.1 statuses/update.json works with standalone apps and is simpler.
+    const tweetUrl = 'https://api.twitter.com/1.1/statuses/update.json';
+
+    const tweetBodyParams = { status: caption || '' };
+    if (mediaId) {
+      tweetBodyParams.media_ids = mediaId;
+    }
 
     const tweetOAuth = baseOAuthParams(apiKey, accessToken);
     const tweetAuth  = buildOAuthHeader({
       method:         'POST',
       url:            tweetUrl,
       oauthParams:    tweetOAuth,
-      // bodyParams intentionally omitted: JSON body is NOT signed in OAuth 1.0a
+      bodyParams:     tweetBodyParams, // URL-encoded body — must be included in signature
       consumerSecret: apiKeySecret,
       tokenSecret:    accessTokenSecret,
     });
-
-    const tweetBody = { text: caption };
-    if (mediaId) {
-      tweetBody.media = { media_ids: [mediaId] };
-    }
 
     const tweetRes = await fetch(tweetUrl, {
       method:  'POST',
       headers: {
         Authorization:  tweetAuth,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(tweetBody),
+      body: new URLSearchParams(tweetBodyParams).toString(),
     });
 
     const tweetData = await tweetRes.json();
@@ -378,12 +379,11 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo = fa
       const errMsg =
         tweetData.errors?.[0]?.message ??
         tweetData.detail ??
-        tweetData.title ??
         JSON.stringify(tweetData);
       return { success: false, error: `Twitter post failed (${tweetRes.status}): ${errMsg}` };
     }
 
-    return { success: true, postId: tweetData.data?.id };
+    return { success: true, postId: String(tweetData.id) };
 
   } catch (err) {
     console.error('[Twitter Poster]', err);
