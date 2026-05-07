@@ -2,76 +2,150 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabaseServer';
 import crypto from 'crypto';
 
-/**
- * X API OAuth 2.0 Authorization Code Flow with PKCE
- * Required for v2 media upload endpoints (v1.1 media upload was deprecated June 2025)
- */
+// ---------------------------------------------------------------------------
+// Minimal OAuth 1.0a helpers (no extra npm packages needed)
+// ---------------------------------------------------------------------------
 
-function base64URLEncode(str) {
-  return str.toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+function percentEncode(str) {
+  return encodeURIComponent(String(str)).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+  );
 }
+
+/**
+ * Build an HMAC-SHA1 OAuth 1.0a Authorization header for a plain GET/POST
+ * where no body params need to be included in the signature (i.e. the body
+ * is either empty or JSON, not URL-encoded form data).
+ */
+function buildOAuthHeader({ method, url, oauthParams, consumerSecret, tokenSecret = '' }) {
+  // Sort params and build the signature base string
+  const paramString = Object.keys(oauthParams)
+    .sort()
+    .map((k) => `${percentEncode(k)}=${percentEncode(oauthParams[k])}`)
+    .join('&');
+
+  const baseString = [
+    method.toUpperCase(),
+    percentEncode(url),
+    percentEncode(paramString),
+  ].join('&');
+
+  const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
+  const signature = crypto
+    .createHmac('sha1', signingKey)
+    .update(baseString)
+    .digest('base64');
+
+  const signed = { ...oauthParams, oauth_signature: signature };
+
+  const header =
+    'OAuth ' +
+    Object.keys(signed)
+      .sort()
+      .map((k) => `${percentEncode(k)}="${percentEncode(signed[k])}"`)
+      .join(', ');
+
+  return header;
+}
+
+// ---------------------------------------------------------------------------
+// Route handler
+// ---------------------------------------------------------------------------
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const clientId = searchParams.get('clientId')?.trim();
+  const apiKey = searchParams.get('apiKey')?.trim();
 
-  if (!clientId) {
-    return NextResponse.json({ error: 'Missing clientId' }, { status: 400 });
+  if (!apiKey) {
+    return NextResponse.json({ error: 'Missing apiKey query param' }, { status: 400 });
   }
 
+  // ── 1. Authenticate the user ──────────────────────────────────────────────
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get the record to find clientSecret
-  const { data: record } = await supabase
+  // ── 2. Fetch the stored API Key Secret ────────────────────────────────────
+  const { data: record, error: dbError } = await supabase
     .from('connected_platforms')
-    .select('*')
+    .select('credentials')
     .eq('user_id', user.id)
     .eq('platform', 'twitter')
     .single();
 
-  if (!record || !record.credentials.clientSecret) {
-    return NextResponse.json({ error: 'Twitter record not initialized correctly' }, { status: 400 });
+  if (dbError || !record?.credentials?.apiKeySecret) {
+    return NextResponse.json(
+      { error: 'Twitter credentials not found. Please save your API Key and API Key Secret first.' },
+      { status: 400 }
+    );
   }
 
-  // Generate PKCE parameters
-  const codeVerifier = base64URLEncode(crypto.randomBytes(32));
-  const codeChallenge = base64URLEncode(
-    crypto.createHash('sha256').update(codeVerifier).digest()
-  );
+  const apiKeySecret = record.credentials.apiKeySecret;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const callbackUrl = `${appUrl.replace(/\/$/, '')}/api/twitter/callback`;
+  // ── 3. Request a temporary OAuth Request Token from Twitter ───────────────
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const callbackUrl = `${appUrl}/api/twitter/callback`;
+  const requestTokenUrl = 'https://api.twitter.com/oauth/request_token';
 
-  const state = Buffer.from(JSON.stringify({
-    userId: user.id,
-    clientId,
-    codeVerifier
-  })).toString('base64');
+  const oauthParams = {
+    oauth_callback: callbackUrl,
+    oauth_consumer_key: apiKey,
+    oauth_nonce: crypto.randomBytes(16).toString('hex'),
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+    oauth_version: '1.0',
+  };
 
-  const scope = [
-    'tweet.read',
-    'tweet.write',
-    'users.read',
-    'media.write',
-    'offline.access'
-  ].join(' ');
+  const authHeader = buildOAuthHeader({
+    method: 'POST',
+    url: requestTokenUrl,
+    oauthParams,
+    consumerSecret: apiKeySecret,
+  });
 
-  const authUrl = new URL('https://x.com/i/oauth2/authorize');
-  authUrl.searchParams.set('response_type', 'code');
-  authUrl.searchParams.set('client_id', clientId);
-  authUrl.searchParams.set('redirect_uri', callbackUrl);
-  authUrl.searchParams.set('scope', scope);
-  authUrl.searchParams.set('state', state);
-  authUrl.searchParams.set('code_challenge', codeChallenge);
-  authUrl.searchParams.set('code_challenge_method', 'S256');
+  const tokenRes = await fetch(requestTokenUrl, {
+    method: 'POST',
+    headers: { Authorization: authHeader },
+  });
 
-  return NextResponse.redirect(authUrl.toString());
+  const tokenText = await tokenRes.text();
+
+  if (!tokenRes.ok) {
+    console.error('[Twitter Authorize] Request token failed:', tokenText);
+    return NextResponse.json(
+      { error: `Twitter request token failed (${tokenRes.status}): ${tokenText}` },
+      { status: 500 }
+    );
+  }
+
+  const tokenData = Object.fromEntries(new URLSearchParams(tokenText));
+
+  if (!tokenData.oauth_token || tokenData.oauth_callback_confirmed !== 'true') {
+    return NextResponse.json(
+      { error: 'Twitter did not confirm the OAuth callback. Check your app callback URL setting.' },
+      { status: 500 }
+    );
+  }
+
+  // ── 4. Redirect the user to Twitter's authorization page ─────────────────
+  // Store the request token secret in an httpOnly cookie so we can use it in
+  // the callback to exchange for the permanent access token.
+  const authorizeUrl = `https://api.twitter.com/oauth/authorize?oauth_token=${tokenData.oauth_token}`;
+
+  const response = NextResponse.redirect(authorizeUrl);
+  response.cookies.set('tw_req_token_secret', tokenData.oauth_token_secret, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes — enough time for the user to authorize
+    path: '/',
+  });
+
+  return response;
 }
