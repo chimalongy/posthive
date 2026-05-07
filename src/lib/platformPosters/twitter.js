@@ -2,14 +2,16 @@
  * PostHive — Twitter/X poster
  *
  * Auth:         OAuth 1.0a (same approach that SVP uses and confirmed working)
- * Image upload: POST /1.1/media/upload.json  (simple base64, reliable on free tier)
+ * Image upload: POST /1.1/media/upload.json  (simple base64 — allowed on Free tier)
  *               NOTE: X has flagged v1.1 for eventual deprecation but it is
  *               currently the only reliable option for image upload on the Free
  *               tier. When X fully enforces /2/media/upload we will need OAuth
- *               2.0 PKCE with the `media.write` scope — at that point the auth
- *               flow in authorize/callback routes must also be updated.
- * Video upload: POST /1.1/media/upload.json  (chunked INIT/APPEND/FINALIZE)
- * Tweet post:   POST /2/tweets               (v2 JSON endpoint, supports OAuth 1.0a)
+ *               2.0 PKCE with the `media.write` scope.
+ * Video upload: POST /1.1/media/upload.json  (chunked INIT/APPEND/FINALIZE — Free tier)
+ * Tweet post:   POST /2/tweets               (v2 JSON — the ONLY endpoint allowed for
+ *               tweet creation on the Free tier; v1.1 statuses/update is NOT available)
+ *               Body: {"text":"...", "media":{"media_ids":["..."]}} (JSON, not form-encoded)
+ *               OAuth sig: JSON body is excluded from the OAuth 1.0a signature base string
  */
 
 import crypto from 'crypto';
@@ -344,14 +346,17 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo = fa
       }
     }
 
-    // ── 2. Post the tweet via API v1.1 ────────────────────────────────────
-    // IMPORTANT: v2 /2/tweets requires the app to be attached to a Project.
-    // The v1.1 statuses/update.json works with standalone apps and is simpler.
-    const tweetUrl = 'https://api.twitter.com/1.1/statuses/update.json';
+    // ── 2. Post the tweet via API v2 ─────────────────────────────────────
+    // NOTE: v1.1/statuses/update.json is NOT available on the Free tier.
+    // Only v2 /2/tweets is permitted for tweet creation on Free.
+    // v1.1 media/upload is still the correct upload endpoint (also on Free).
+    const tweetUrl = 'https://api.twitter.com/2/tweets';
 
-    const tweetBodyParams = { status: caption || '' };
+    // v2 uses a JSON body — do NOT include JSON body params in the OAuth
+    // 1.0a signature (only URL-encoded form params go into the sig base string).
+    const tweetPayload = { text: caption || '' };
     if (mediaId) {
-      tweetBodyParams.media_ids = mediaId;
+      tweetPayload.media = { media_ids: [mediaId] };
     }
 
     const tweetOAuth = baseOAuthParams(apiKey, accessToken);
@@ -359,7 +364,7 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo = fa
       method:         'POST',
       url:            tweetUrl,
       oauthParams:    tweetOAuth,
-      bodyParams:     tweetBodyParams, // URL-encoded body — must be included in signature
+      // No bodyParams — JSON bodies are NOT part of the OAuth 1.0a signature
       consumerSecret: apiKeySecret,
       tokenSecret:    accessTokenSecret,
     });
@@ -368,9 +373,9 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo = fa
       method:  'POST',
       headers: {
         Authorization:  tweetAuth,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams(tweetBodyParams).toString(),
+      body: JSON.stringify(tweetPayload),
     });
 
     const tweetData = await tweetRes.json();
@@ -383,7 +388,8 @@ export async function postToTwitter(credentials, mediaUrl, caption, isVideo = fa
       return { success: false, error: `Twitter post failed (${tweetRes.status}): ${errMsg}` };
     }
 
-    return { success: true, postId: String(tweetData.id) };
+    // v2 response shape: { data: { id: "...", text: "..." } }
+    return { success: true, postId: String(tweetData.data?.id ?? tweetData.id) };
 
   } catch (err) {
     console.error('[Twitter Poster]', err);
