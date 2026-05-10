@@ -17,11 +17,13 @@ export async function GET(request) {
   }
 
   // Construct Facebook OAuth URL
+  // pages_show_list is deprecated in Graph API v22.0
+  // pages_manage_posts & pages_read_engagement require App Review for Live apps
   const scope = [
     'public_profile',
-    'pages_show_list',
     'pages_manage_posts',
-    'pages_read_engagement'
+    'pages_read_engagement',
+    'pages_manage_engagement',
   ].join(',');
   
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
