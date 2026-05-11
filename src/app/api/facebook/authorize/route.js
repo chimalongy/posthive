@@ -43,6 +43,10 @@ export async function GET(request) {
   authUrl.searchParams.set('state', state);
   authUrl.searchParams.set('scope', scope);
   authUrl.searchParams.set('response_type', 'code');
+  // Force Facebook to re-show the consent screen with ALL current permissions.
+  // Without this, Facebook re-uses the previous token's permissions and skips
+  // showing the dialog — so newly added scopes (like pages_show_list) are never granted.
+  authUrl.searchParams.set('auth_type', 'rerequest');
 
   return NextResponse.redirect(authUrl.toString());
 }

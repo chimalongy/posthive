@@ -74,8 +74,9 @@ export async function GET(request) {
     if (!meRes.ok) throw new Error(meData.error?.message || 'Failed to get user info');
     const userFacebookId = meData.id;
 
-    // Step 4: Get pages — requires pages_show_list scope
-    const pagesUrl = `https://graph.facebook.com/v22.0/me/accounts?access_token=${longToken}`;
+    // Step 4: Get pages — requires pages_show_list scope.
+    // Explicitly request fields so Facebook doesn't omit access_token.
+    const pagesUrl = `https://graph.facebook.com/v22.0/me/accounts?fields=id,name,access_token,tasks&access_token=${longToken}`;
     const pagesRes = await fetch(pagesUrl);
     const pagesData = await pagesRes.json();
 
@@ -87,10 +88,12 @@ export async function GET(request) {
     }
 
     if (!pagesData.data || pagesData.data.length === 0) {
+      // Include the raw response so we can diagnose what Facebook is returning
       throw new Error(
-        'No Facebook Pages were returned. This usually means: ' +
-        '(1) The "pages_show_list" permission was not granted — disconnect and reconnect Facebook, ' +
-        'or (2) Your Facebook account has no Pages — create a Facebook Page first at facebook.com/pages/create.'
+        `No Facebook Pages returned (raw response: ${JSON.stringify(pagesData)}). ` +
+        'Make sure: (1) your Facebook app is in Development mode, ' +
+        '(2) you have at least one Facebook Page where you are an Admin, ' +
+        '(3) you granted all permissions on the consent screen.'
       );
     }
 
