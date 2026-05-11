@@ -16,12 +16,31 @@ export async function GET(request) {
   }
 
   try {
-    const record = JSON.parse(decodeURIComponent(state));
-    const { userId, appId, appSecret } = record;
+    const stateData = JSON.parse(decodeURIComponent(state));
+    const { userId, appId } = stateData;
 
-    if (!userId || !appId || !appSecret) {
+    if (!userId || !appId) {
       throw new Error('Invalid state parameters');
     }
+
+    // Fetch appSecret from the database — it was saved during the connect step.
+    // We intentionally do NOT pass secrets through URL state parameters.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: platformRecord, error: fetchError } = await supabase
+      .from('connected_platforms')
+      .select('credentials')
+      .eq('user_id', userId)
+      .eq('platform', 'facebook')
+      .single();
+
+    if (fetchError || !platformRecord?.credentials?.appSecret) {
+      throw new Error('Facebook credentials not found. Please save your App ID and App Secret first.');
+    }
+
+    const appSecret = platformRecord.credentials.appSecret;
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const redirectUri = `${appUrl.replace(/\/$/, '')}/api/facebook/callback`;
@@ -97,12 +116,7 @@ export async function GET(request) {
     const pageId = pages[0].id;
     const pageName = pages[0].name;
 
-    // Step 6: Initialize Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    // Step 7: Update Facebook record
+    // Step 6: Update Facebook record (reusing the supabase client from above)
     const facebookCredentials = {
       appId,
       appSecret,

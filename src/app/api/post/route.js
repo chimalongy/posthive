@@ -106,6 +106,25 @@ export async function POST(req) {
       }
     }
 
+    // 4. Save the post record to the database
+    const allSucceeded = results.every(r => r.success);
+    const allFailed = results.every(r => !r.success);
+    const postStatus = allSucceeded ? 'posted' : allFailed ? 'failed' : 'partial';
+
+    const resultsMap = {};
+    results.forEach(r => { resultsMap[r.platform] = r; });
+
+    await supabase
+      .from('posts')
+      .insert({
+        user_id: user.id,
+        media_id: media_id || null,
+        caption: caption || '',
+        platforms: selectedPlatformNames,
+        status: postStatus,
+        results: resultsMap,
+      });
+
     return new Response(JSON.stringify({ results }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('Post API Error:', err);
