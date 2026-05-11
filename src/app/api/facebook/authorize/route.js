@@ -16,11 +16,14 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Construct Facebook OAuth URL
-  // pages_show_list is deprecated in Graph API v22.0
-  // pages_manage_posts & pages_read_engagement require App Review for Live apps
+  // Required scopes for PostHive Facebook integration:
+  // - pages_show_list: REQUIRED to list user's pages via /me/accounts (NOT deprecated)
+  // - pages_manage_posts: post to pages
+  // - pages_read_engagement: read page engagement data
+  // - pages_manage_engagement: manage comments/reactions
   const scope = [
     'public_profile',
+    'pages_show_list',
     'pages_manage_posts',
     'pages_read_engagement',
     'pages_manage_engagement',

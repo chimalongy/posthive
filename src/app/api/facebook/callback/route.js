@@ -74,13 +74,24 @@ export async function GET(request) {
     if (!meRes.ok) throw new Error(meData.error?.message || 'Failed to get user info');
     const userFacebookId = meData.id;
 
-    // Step 4: Get pages
+    // Step 4: Get pages — requires pages_show_list scope
     const pagesUrl = `https://graph.facebook.com/v22.0/me/accounts?access_token=${longToken}`;
     const pagesRes = await fetch(pagesUrl);
     const pagesData = await pagesRes.json();
 
-    if (!pagesRes.ok || !pagesData.data || pagesData.data.length === 0) {
-      throw new Error('No Facebook Pages found for this user');
+    // Log the raw response to help diagnose permission issues
+    console.log('[Facebook Callback] /me/accounts response:', JSON.stringify(pagesData));
+
+    if (!pagesRes.ok) {
+      throw new Error(`Facebook API error fetching pages: ${pagesData.error?.message || JSON.stringify(pagesData)}`);
+    }
+
+    if (!pagesData.data || pagesData.data.length === 0) {
+      throw new Error(
+        'No Facebook Pages were returned. This usually means: ' +
+        '(1) The "pages_show_list" permission was not granted — disconnect and reconnect Facebook, ' +
+        'or (2) Your Facebook account has no Pages — create a Facebook Page first at facebook.com/pages/create.'
+      );
     }
 
     // Step 5: Build page list with instagram accounts
