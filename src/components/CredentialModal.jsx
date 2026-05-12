@@ -9,10 +9,28 @@ const platformConfig = {
     fields: [
       { key: 'appId', label: 'App ID', type: 'text', help: 'https://developers.facebook.com/apps/' },
       { key: 'appSecret', label: 'App Secret', type: 'password', help: 'https://developers.facebook.com/apps/' },
+      {
+        key: 'pageId',
+        label: 'Page ID (Optional — only if auto-detection fails)',
+        type: 'text',
+        optional: true,
+        help: 'https://developers.facebook.com/tools/explorer/',
+      },
+      {
+        key: 'pageAccessToken',
+        label: 'Page Access Token (Optional — only if auto-detection fails)',
+        type: 'password',
+        optional: true,
+        help: 'https://developers.facebook.com/tools/explorer/',
+      },
     ],
     warning:
-      'Facebook requires OAuth authorization. Enter your App credentials from the Meta for Developers portal, then click "Save & Authorize". You will be asked to select the Page you want to connect.',
+      'Enter your App ID and App Secret, then click "Save & Authorize". ' +
+      'PostHive will auto-detect your Facebook Page. ' +
+      'If auto-detection fails, open the Graph API Explorer (link next to each field), ' +
+      'run GET /me/accounts to get your Page ID and Page Access Token, then enter them above.',
   },
+
 
   instagram: {
     name: 'Instagram',
@@ -103,6 +121,7 @@ export default function CredentialModal({ platform, onSave, onClose }) {
 
     const emptyField = config.fields.find((f) => {
       if (f.type === 'checkbox') return false;
+      if (f.optional) return false;  // skip optional fields
       return !values[f.key]?.trim();
     });
 

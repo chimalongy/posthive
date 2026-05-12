@@ -24,6 +24,7 @@ export async function GET(request) {
   const scope = [
     'public_profile',
     'pages_show_list',
+    'business_management',
     'pages_manage_posts',
     'pages_read_engagement',
     'pages_manage_engagement',

@@ -88,12 +88,44 @@ export async function GET(request) {
     }
 
     if (!pagesData.data || pagesData.data.length === 0) {
-      // Include the raw response so we can diagnose what Facebook is returning
+      // Fallback: check if the user manually provided pageId & pageAccessToken
+      // during the credential-entry step (the optional fields in CredentialModal).
+      const manualPageId = platformRecord.credentials.pageId;
+      const manualPageToken = platformRecord.credentials.pageAccessToken;
+
+      if (manualPageId && manualPageToken) {
+        console.log('[Facebook Callback] Auto-detection returned no pages — using manually provided pageId/pageAccessToken.');
+        const facebookCredentials = {
+          ...platformRecord.credentials,
+          accessToken: longToken,
+          pageAccessToken: manualPageToken,
+          pageId: manualPageId,
+          userId: userFacebookId,
+          token_expires_at: Date.now() + 5184000000, // 60 days
+        };
+
+        await supabase
+          .from('connected_platforms')
+          .update({
+            credentials: facebookCredentials,
+            is_active: true,
+            connected_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .eq('platform', 'facebook');
+
+        return NextResponse.redirect(
+          new URL('/dashboard/platforms?success=Facebook+connected+(manual+page)', request.url)
+        );
+      }
+
+      // No manual fallback available — throw with diagnostic info
       throw new Error(
         `No Facebook Pages returned (raw response: ${JSON.stringify(pagesData)}). ` +
         'Make sure: (1) your Facebook app is in Development mode, ' +
         '(2) you have at least one Facebook Page where you are an Admin, ' +
-        '(3) you granted all permissions on the consent screen.'
+        '(3) you granted all permissions on the consent screen, ' +
+        '(4) if your Page is under a Business Manager, grant the "business_management" permission.'
       );
     }
 
@@ -159,6 +191,16 @@ export async function GET(request) {
           connected_at: new Date().toISOString()
         })
         .eq('id', existingFb.id);
+    } else {
+      await supabase
+        .from('connected_platforms')
+        .insert({
+          user_id: userId,
+          platform: 'facebook',
+          credentials: facebookCredentials,
+          is_active: true,
+          connected_at: new Date().toISOString()
+        });
     }
 
     // Step 8: Auto-connect Instagram if linked
